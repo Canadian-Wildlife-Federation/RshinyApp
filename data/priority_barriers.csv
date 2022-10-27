@@ -1,0 +1,14 @@
+aggregated_crossings_id,stream_name,road_name,owner,proposed_fix,estimated_cost,upstr_hab_quality,barrier_type,hab_gain,cost_benefit_ratio,priority,next_steps,reason,notes
+1100001199,Gibbons Creek,,Private,Reassess dam presence,5,Low,TBD,,,Low,Barrier assessment,,"Private owner, unlikely to be cooperative"
+1100001700,Rat/Peter Creek,,Private,Reassess dam presence,5,Low,Dam,,,Low,Barrier assessment,,"also test water quality while out there, take a look at the bridge 124264 on Horsefly-Quesnel Lk Rd  downstream."
+124268,Vedder Creek,Horsefly-Quesnel Lake Road,MOTI,Replace with 4 m clearspan bridge,400,High,Partial,,,Medium,Design,High quality habitat but seems to be accessible to most fish,
+57507,Wilmot Creek,Horsefly 1242-01,MOTI,Replace with 7 m Clearspan Bridge ,700,Medium,Full,,,High,Design,"High potential for use by salmon, direct connection to Horsefly",
+124150,Trib to Deerhorn,Unnamed,Private (Bob & Helen Sullivan),Replace with 5 m Clearspan Bridge ,75,Medium,Potential,,,Medium,Design,"Good rearing upstream, good spawning downstream",Owners not super receptive to work right now
+124272,Trib to Woodjam Creek,Unnamed,Private (for sale) ,Replace with 4 m clearspan bridge,60,High,Partial,,,Medium,Design,Passable to adults but high quality habitat upstream,Property for sale
+124256,Harpers Lake Creek,Horsefly Road,MOTI,Replace with 7 m Clearspan Bridge ,700,Medium,Full,,,Medium,Design,"Direct access to Horsefly R, provide access to Harpers Lake",
+126471,Trib to Woodjam Creek,unnamed,FLNRO,Replace with 3 m clearspan bridge,60,Medium,Partial,,,Low,Design,"Short habitat gain, parr able to pass at some flows, dewatering/ stranding potential",
+126511,Trib to Horsefly River,unnamed,Tolko Industries,Remove culvert from under bridge,30,Medium,Potential,,,High,Follow up with barrier owner,"simple fix, bridge already in place, low cost, decent habitat",Industry barrier  (Tolko)
+197762,Divan Creek,unnamed,W. Fraser Mills,Restore stream channel through deactivated corridor,40,Low,Full,,,Medium,Follow up with barrier owner,Low quality habitat but industry-owned,Industry barrer (W. Fraser Mills)
+57158,Trib to McKinley Ck,R02156-887,W. Fraser Mills,Replace with 6 m clearspan bridge,100,Medium,Full,,,Medium,Follow up with barrier owner,"short habitat gain (wetland upstream), industry-owned. Poorly definte channel beyond wetland",Industry barrier (West Fraser Mills)
+1100002900,Gibbons Creek,,Private,Reassess habita t quality,5,Low,Dam,,,Low,Habitat investigations,,"Private owner, unlikely to be cooperative"
+57168,Trib to Bosk Lake,Black Creek-Cruiser Lake,FLNRO,Replace with 11 m clearspan bridge,150,Medium,Partial-Full,,,High,Remediation,Potential for upstream spawning and rearing,
