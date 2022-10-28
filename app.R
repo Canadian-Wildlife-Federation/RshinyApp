@@ -103,6 +103,7 @@ server <- function(input, output, session) {
     leaflet() %>%
       addTiles(group = "OSM") %>%
       addMapboxGL(style = "mapbox://styles/mapbox/streets-v9", group = "Mapbox") %>%
+      addMapboxGL(style = "mapbox://styles/mapbox/satellite-v9", group = "Mapbox Satellite") %>%
       addCircleMarkers(data = y() %>%
                         dplyr::filter(
                           barrier_status == "PASSABLE"
@@ -150,7 +151,7 @@ server <- function(input, output, session) {
       addLegend("topright", pal = col, values = df$barrier_status) %>%
       # Layers control
       addLayersControl(
-        baseGroups = c("OSM", "Mapbox"),
+        baseGroups = c("OSM", "Mapbox", "Mapbox Satellite"),
         overlayGroups = c("Passable", "Barrier", "Potential", "Unknown"),
         options = layersControlOptions(collapsed = TRUE)
       )
