@@ -51,8 +51,8 @@ ui <- fluidPage(
   selectInput("priority", "Barrier List:", c("All" = "All", "Priority" = "Priority", "Intermediate" = "Intermediate"), selected = "All"),
   selectInput("variable", "Barrier Status:", c("Passable" = "PASSABLE", "Barrier" = "BARRIER","Potential"="POTENTIAL","Unknown"="UNKNOWN"), selected = c("PASSABLE", "BARRIER","POTENTIAL","UNKNOWN"), multiple = TRUE),
   leafletOutput("mymap"), 
-  dataTableOutput("mytable")
-  
+  dataTableOutput("mytable"),
+  includeCSS("www/simple_app_styling.css")
 )
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
