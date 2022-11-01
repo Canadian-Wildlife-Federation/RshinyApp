@@ -21,6 +21,7 @@ crossings_res <- read_sf("https://features.hillcrestgeo.ca/bcfishpass/collection
 df <- crossings_res %>%
       dplyr::mutate(lat = sf::st_coordinates(crossings_res)[,2],
                     lon = sf::st_coordinates(crossings_res)[,1])
+
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #priority and intermediate barrier list data frame to be used for filtering of ids server side
@@ -47,12 +48,45 @@ options(mapbox.accessToken = "pk.eyJ1IjoidG9tYXMtbWsiLCJhIjoiY2w5b2JjNnl0MGR2YjN
 #main app page
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 ui <- fluidPage(
-  titlePanel("HORS WCRP DRAFT"),
-  selectInput("priority", "Barrier List:", c("All" = "All", "Priority" = "Priority", "Intermediate" = "Intermediate"), selected = "All"),
-  selectInput("variable", "Barrier Status:", c("Passable" = "PASSABLE", "Barrier" = "BARRIER","Potential"="POTENTIAL","Unknown"="UNKNOWN"), selected = c("PASSABLE", "BARRIER","POTENTIAL","UNKNOWN"), multiple = TRUE),
-  leafletOutput("mymap"), 
-  dataTableOutput("mytable"),
-  includeCSS("www/simple_app_styling.css")
+  #Add custom css
+  includeCSS("www/simple_app_styling.css"),
+  #create top navbar
+  navbarPage("WCRP Dashboard",
+    #create tabs in nav bar
+    tabPanel("All Barriers", 
+             tabsetPanel(id = "alltab",
+                         tabPanel(value = "Tab_1", 
+                                   #add content to tab panel
+                                   selectInput("priority", "Barrier List:", c("All" = "All", "Priority" = "Priority", "Intermediate" = "Intermediate"), selected = "All"),
+                                   selectInput("variable", "Barrier Status:", c("Passable" = "PASSABLE", "Barrier" = "BARRIER","Potential"="POTENTIAL","Unknown"="UNKNOWN"), selected = c("PASSABLE", "BARRIER","POTENTIAL","UNKNOWN"), multiple = TRUE),
+                                   leafletOutput("mymap"), 
+                                   dataTableOutput("mytable"),
+                          )
+             )
+    ),
+    tabPanel("Priority Barriers",
+             tabsetPanel(id = "prioritytab",
+                         tabPanel(value = "Tab_2", 
+                                  #add content to tab panel
+                                  selectInput("priority", "Barrier List:", c("All" = "All", "Priority" = "Priority", "Intermediate" = "Intermediate"), selected = "Priority"),
+                                  selectInput("variable", "Barrier Status:", c("Passable" = "PASSABLE", "Barrier" = "BARRIER","Potential"="POTENTIAL","Unknown"="UNKNOWN"), selected = c("PASSABLE", "BARRIER","POTENTIAL","UNKNOWN"), multiple = TRUE),
+                         )
+             )
+    ),
+    tabPanel("Intermediate Barriers",
+             tabsetPanel(id = "intermediatetab",
+                         tabPanel(value = "Tab_3", 
+                                  #add content to tab panel
+                                  selectInput("priority", "Barrier List:", c("All" = "All", "Priority" = "Priority", "Intermediate" = "Intermediate"), selected = "Intermediate"),
+                                  selectInput("variable", "Barrier Status:", c("Passable" = "PASSABLE", "Barrier" = "BARRIER","Potential"="POTENTIAL","Unknown"="UNKNOWN"), selected = c("PASSABLE", "BARRIER","POTENTIAL","UNKNOWN"), multiple = TRUE),
+                         )
+             )
+      ),
+    #create element to display an image on right side of navbar
+    tags$script(HTML("var header = $('.navbar > .container-fluid');
+    header.append('<div><a href=\"\"><img src=\"https://cwf-fcf.org/assets/wrapper-reusables/images/logo/white-cwf-logo-en.svg\" style=\"float:right;width:200px;height:40px;padding-top:10px;padding-right:5px;\"></a></div>');
+    console.log(header)")),
+  )
 )
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -75,28 +109,29 @@ df$label <- paste0("<table style=\"border: 1px solid black\">
 #server rendering
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 server <- function(input, output, session) {
-
+  
   #conditions based on barrier list dropdown
   priority_div <- reactive({
     input$priority
   })
-
+  
   y <- reactive({
     if (priority_div() == "Priority") {
       df <- df %>%
-              dplyr::filter(
-                id %in% priority$aggregated_crossings_id
-              )
+        dplyr::filter(
+          id %in% priority$aggregated_crossings_id
+        )
     } else if (priority_div() == "Intermediate") {
       df <- df %>%
-              dplyr::filter(
-                id %in% intermediate$intermediate
-              )
+        dplyr::filter(
+          id %in% intermediate$intermediate
+        )
     } else {
       df <- df
     }
-})
-
+  })
+  
+  
   #leaflet map rendering
   output$mymap <- renderLeaflet({
     
@@ -105,49 +140,49 @@ server <- function(input, output, session) {
       addMapboxGL(style = "mapbox://styles/mapbox/streets-v9", group = "Mapbox") %>%
       addMapboxGL(style = "mapbox://styles/mapbox/satellite-v9", group = "Mapbox Satellite") %>%
       addCircleMarkers(data = y() %>%
-                        dplyr::filter(
-                          barrier_status == "PASSABLE"
-                        ),
+                         dplyr::filter(
+                           barrier_status == "PASSABLE"
+                         ),
                        lat = ~lat, 
                        lng = ~lon,
                        clusterOptions = markerClusterOptions(),
                        color = ~col(barrier_status),
                        popup = ~label,
                        group = "Passable"
-                       ) %>%
+      ) %>%
       addCircleMarkers(data = y() %>%
-                        dplyr::filter(
-                          barrier_status == "BARRIER"
-                        ),
+                         dplyr::filter(
+                           barrier_status == "BARRIER"
+                         ),
                        lat = ~lat, 
                        lng = ~lon,
                        clusterOptions = markerClusterOptions(),
                        color = ~col(barrier_status),
                        popup = ~label,
                        group = "Barrier"
-                       ) %>%
+      ) %>%
       addCircleMarkers(data = y() %>%
-                        dplyr::filter(
-                          barrier_status == "POTENTIAL"
-                        ),
+                         dplyr::filter(
+                           barrier_status == "POTENTIAL"
+                         ),
                        lat = ~lat, 
                        lng = ~lon,
                        clusterOptions = markerClusterOptions(),
                        color = ~col(barrier_status),
                        popup = ~label,
                        group = "Potential"
-                       ) %>%
+      ) %>%
       addCircleMarkers(data = y() %>%
-                        dplyr::filter(
-                          barrier_status == "UNKNOWN"
-                        ),
+                         dplyr::filter(
+                           barrier_status == "UNKNOWN"
+                         ),
                        lat = ~lat, 
                        lng = ~lon,
                        clusterOptions = markerClusterOptions(),
                        color = ~col(barrier_status),
                        popup = ~label,
                        group = "Unknown"
-                       ) %>%
+      ) %>%
       addLegend("topright", pal = col, values = df$barrier_status) %>%
       # Layers control
       addLayersControl(
@@ -155,17 +190,17 @@ server <- function(input, output, session) {
         overlayGroups = c("Passable", "Barrier", "Potential", "Unknown"),
         options = layersControlOptions(collapsed = TRUE)
       )
-
+    
   })
-
+  
   #data table rendering
   output$mytable <- renderDataTable({y()[, c("id", "pscis_stream_name", "barrier_status")] %>%
-               dplyr::filter(
-                barrier_status %in% input$variable
-              )
-              })
+      dplyr::filter(
+        barrier_status %in% input$variable
+      )
+  })
 }
- #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 # finally, we need to call the shinyapp function with the ui and server as arguments
 app <- shinyApp(ui, server)
 
