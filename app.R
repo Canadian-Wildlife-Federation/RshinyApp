@@ -67,6 +67,8 @@ options(mapbox.accessToken = "pk.eyJ1IjoidG9tYXMtbWsiLCJhIjoiY2w5b2JjNnl0MGR2YjN
 ui <- fluidPage(
   #Add custom css
   includeCSS("www/simple_app_styling.css"),
+  #include JS function
+  includeScript("gomap.js"),
   #create top navbar
   navbarPage("WCRP Dashboard",
     #create tabs in nav bar
@@ -76,14 +78,14 @@ ui <- fluidPage(
                                    #add content to tab panel
                                    selectInput("priority", "Barrier List:", c("All" = "All", "Priority" = "Priority", "Intermediate" = "Intermediate"), selected = "All"),
                                    selectInput("variable", "Barrier Status:", c("Passable" = "PASSABLE", "Barrier" = "BARRIER","Potential"="POTENTIAL","Unknown"="UNKNOWN"), selected = c("PASSABLE", "BARRIER","POTENTIAL","UNKNOWN"), multiple = TRUE),
-                                   leafletOutput("mymap"), 
+                                   leafletOutput("mymap"),
                                    dataTableOutput("mytable"),
                           )
              )
     ),
     tabPanel("Priority Barriers",
              tabsetPanel(id = "prioritytab",
-                         tabPanel(value = "Tab_2", 
+                         tabPanel(value = "Tab_2",
                                   #add content to tab panel
                                   selectInput("priority", "Barrier List:", c("All" = "All", "Priority" = "Priority", "Intermediate" = "Intermediate"), selected = "Priority"),
                                   selectInput("variable", "Barrier Status:", c("Passable" = "PASSABLE", "Barrier" = "BARRIER","Potential"="POTENTIAL","Unknown"="UNKNOWN"), selected = c("PASSABLE", "BARRIER","POTENTIAL","UNKNOWN"), multiple = TRUE),
@@ -149,14 +151,23 @@ server <- function(input, output, session) {
       df <- df %>%
         dplyr::filter(
           id %in% priority$aggregated_crossings_id
+        ) %>%
+        dplyr::filter(
+          barrier_status %in% input$variable
         )
     } else if (priority_div() == "Intermediate") {
       df <- df %>%
         dplyr::filter(
           id %in% intermediate$intermediate
+        ) %>%
+        dplyr::filter(
+          barrier_status %in% input$variable
         )
     } else {
-      df <- df
+      df <- df %>%
+        dplyr::filter(
+          barrier_status %in% input$variable
+        )
     }
   })
   
@@ -167,6 +178,10 @@ server <- function(input, output, session) {
     
     leaflet() %>%
       addTiles(group = "OSM") %>%
+      # addWMSTiles("http://maps.geogratis.gc.ca/wms/hydro_network_en?version=1.3.0",
+      #             layers = "nhn:nhn:drainageareas:nhnda",
+      #             options = WMSTileOptions(format = "image/png", transparent = TRUE),
+      #             attribution = "Government of Canada; Natural Resources Canada; Strategic Policy and Innovation Sector") %>%
       addProviderTiles(providers$Stamen.Toner, group = "Toner") %>%
       addProviderTiles(providers$Stamen.TonerLite, group = "Toner Lite") %>%
       addMapboxGL(style = "mapbox://styles/mapbox/streets-v9", group = "Mapbox") %>%
@@ -229,8 +244,8 @@ server <- function(input, output, session) {
       addLegend("topright", pal = col, values = df$barrier_status) %>%
       # Layers control
       addLayersControl(
-        baseGroups = c("OSM", "Mapbox", "Toner", "Toner Lite"),
-        overlayGroups = c("Passable", "Barrier", "Potential", "Unknown"),
+        baseGroups = c("Mapbox", "Mapbox Satellite"),
+        # overlayGroups = c("Passable", "Barrier", "Potential", "Unknown"),
         options = layersControlOptions(collapsed = FALSE)
       )
     
@@ -248,15 +263,16 @@ server <- function(input, output, session) {
     })
   })
 
+
   
 
   #data table rendering
   output$mytable <- renderDataTable({
 
     dt <- y()[, c("id", "pscis_stream_name", "barrier_status", "lat", "long")] %>%
-               dplyr::filter(
-                barrier_status %in% input$variable
-              ) %>%
+              #  dplyr::filter(
+              #   barrier_status %in% input$variable
+              # ) %>%
               st_drop_geometry() %>%
       mutate(Location = paste('<a class="go-map" href="" data-lat="', lat, '" data-long="', long, '"><i class="fa fa-crosshairs"></i></a>', sep=""))
 
