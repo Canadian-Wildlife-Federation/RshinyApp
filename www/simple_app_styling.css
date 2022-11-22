@@ -62,6 +62,10 @@ tr {
     background-color: #28484e;
 }
 
+.popup {
+    background-color: #b8cdd1;
+}
+
 table.dataTable thead th, table.dataTable tfoot th {
     color: white;
 }
