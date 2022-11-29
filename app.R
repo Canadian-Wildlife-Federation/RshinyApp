@@ -15,7 +15,7 @@ library(leafpop)
 library(osmextract)
 library(mapboxapi)
 library(ggplot2)
-
+library(shinyBS)
 
 
 
@@ -82,17 +82,6 @@ ui <- fluidPage(
   #create top navbar
   navbarPage("WCRP Dashboard",
     #create tabs in nav bar
-    tabPanel("All Barriers", 
-             tabsetPanel(id = "alltab",
-                         tabPanel(value = "Tab_1", 
-                                   #add content to tab panel
-                                   selectInput("priority", "Barrier List:", c("All" = "All", "Priority" = "Priority", "Intermediate" = "Intermediate"), selected = "All"),
-                                   selectInput("variable", "Barrier Status:", c("Passable" = "PASSABLE", "Barrier" = "BARRIER","Potential"="POTENTIAL","Unknown"="UNKNOWN"), selected = c("PASSABLE", "BARRIER","POTENTIAL","UNKNOWN"), multiple = TRUE),
-                                   leafletOutput("mymap"),
-                                   dataTableOutput("mytable"),
-                          )
-             )
-    ),
     tabPanel("Useful Statistics",
              tabsetPanel(id = "prioritytab",
                          tabPanel(value = "Tab_2",
@@ -100,6 +89,28 @@ ui <- fluidPage(
                                   selectInput("options", "Attribute", c("Barrier Status" = "barr", "Feature Type" = "type")),
                                   plotOutput("attr_bar")
                          )
+             )
+    ),
+    tabPanel("Interactive Map", 
+             tabsetPanel(id = "alltab",
+                         tabPanel("", value = "Tab_1", 
+                                   #add content to tab panel
+                                  fluidRow(id = "row1",
+                                    selectInput("priority", "Barrier List", c("All" = "All", "Priority" = "Priority", "Intermediate" = "Intermediate"), selected = "All"),
+                                    bsTooltip("priority", "Here is some text with your instructions", placement = "bottom", trigger = "hover", options = NULL),
+                                    selectInput("variable", "Barrier Status", c("Passable" = "PASSABLE", "Barrier" = "BARRIER","Potential"="POTENTIAL","Unknown"="UNKNOWN"), selected = c("PASSABLE", "BARRIER","POTENTIAL","UNKNOWN"), multiple = TRUE),
+                                    bsTooltip("variable", "Here is some text with your instructions", placement = "bottom", trigger = "hover", options = NULL)
+                                  ),
+                                  tags$hr(style="border-color: white;"),
+                                  fluidRow(id = "row2",
+                                           column(5,
+                                                  leafletOutput("mymap")
+                                           ),
+                                           column(7,
+                                                  dataTableOutput("mytable")
+                                           ),
+                                  )
+                          )
              )
     ),
     tabPanel("Prioritization process",
@@ -122,7 +133,7 @@ ui <- fluidPage(
 
 #popup formatting
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
-df$label <- paste0("<table style=\"border: 1px solid black\">
+df$label <- paste0("<table style=\"border: 1px solid rgb(241, 241, 241)\">
                         <h4>ID: ", df$id, "</h4>
                         <br>
                         <tr class=\"popup\">
@@ -400,15 +411,15 @@ server <- function(input, output, session) {
 
     action <- DT::dataTableAjax(session, dt, outputId = "mytable")
 
-    datatable(dt, options = list(ajax = list(url = action)),
-      colnames = c("ID", "Stream Name", "Barrier Status", "Potenital Crossing Type", "Lat", "Lon", "Location"),
+    datatable(dt, options = list(scrollY = 'calc(100vh - 350px)', ajax = list(url = action)),
+      colnames = c("ID", "Stream Name", "Barrier Status", "Potenital Crossing Type", "Latitude", "Longitude", "Location"),
       escape = FALSE,
       selection = "none",
       style = "bootstrap"
       )
 
     })
-
+  
   #Tab panel #2---------------------------------------------------------------------
   output$attr_bar <- renderPlot(width = "auto",
   height = "auto",
