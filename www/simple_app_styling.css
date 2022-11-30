@@ -69,3 +69,26 @@ tr {
 table.dataTable thead th, table.dataTable tfoot th {
     color: white;
 }
+
+.progress-bar-custom {background-color: #00FF00; color: black;}
+
+.marker-custom-small {
+    background-color: rgba(220,220,220, 1);
+      }
+  .marker-customr-small div {
+      background-color: rgba(128,128,128, 1);
+      }
+
+  .marker-custom-medium {
+      background-color: rgba(220,220,220, 1);
+      }
+  .marker-custom-medium div {
+      background-color: rgba(105,105,105, 1);
+      }
+
+  .marker-custom-large {
+      background-color: rgba(220,220,220, 1);
+      }
+  .marker-custom-large div {
+      background-color: rgba(119,136,153, 1);
+  }

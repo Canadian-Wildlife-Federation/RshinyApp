@@ -15,6 +15,10 @@ library(leafpop)
 library(osmextract)
 library(mapboxapi)
 library(ggplot2)
+library(shinydashboard)
+library(shinydashboardPlus)
+library(shinyWidgets)
+library(png)
 
 
 
@@ -28,6 +32,16 @@ df <- crossings_res %>%
                     lat = sf::st_coordinates(crossings_res)[, 2])
 
 boundary <- read_sf("https://features.hillcrestgeo.ca/fwa/collections/whse_basemapping.fwa_watershed_groups_poly/items.json?watershed_group_code=HORS")
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+#watershed connectivity function
+watershed_connectivity <- function(habitat_type){
+  request <- paste('https://features.hillcrestgeo.ca/bcfishpass/functions/postgisftw.wcrp_watershed_connectivity_status/items.json?watershed_group_code=HORS&barrier_type=',habitat_type, sep = "")
+  res <-GET(request)
+  data <- fromJSON(rawToChar(res$content))
+  return(data$connectivity_status)
+
+}
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -67,15 +81,9 @@ labs <- as.list(df_str$gnis_name)
 options(mapbox.accessToken = "pk.eyJ1IjoidG9tYXMtbWsiLCJhIjoiY2w5b2JjNnl0MGR2YjN1bXpjenUwa2hnZyJ9.s21BqE7q2yEgDKFE5zNp_g", mapbox.antialias = TRUE)
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#vector tile rendering
-# wy_url = "https://tiles.hillcrestgeo.ca/bcfishpass/bcfishpass.streams/{z}/{x}/{y}.pbf"
-# download.file(wy_url, "stream.pbf")
-# sf::st_layers("stream.pbf")
-
 #main app page
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 ui <- fluidPage(
-  #Add custom css
   includeCSS("www/simple_app_styling.css"),
   #include JS function
   includeScript("gomap.js"),
@@ -96,20 +104,55 @@ ui <- fluidPage(
     tabPanel("Useful Statistics",
              tabsetPanel(id = "prioritytab",
                          tabPanel(value = "Tab_2",
+                                  useShinydashboard(),
                                   #add content to tab panel
                                   selectInput("options", "Attribute", c("Barrier Status" = "barr", "Feature Type" = "type")),
-                                  plotOutput("attr_bar")
+                                  mainPanel(
+                                    plotOutput("attr_bar")
+                                  ),
+                                  sidebarPanel(
+                                    fluidRow(
+                                      shinyWidgets::progressBar(id = "connect",
+                                                  value = watershed_connectivity("ALL"),
+                                                  display_pct = TRUE,
+                                                  title = "Overall Connectivity Status",
+                                                  status = "custom"
+                                      ),
+                                      actionButton("refresh", "Update Status"),
+                                      br(),
+                                      h1("Species of Interest"),
+                                      br(),
+                                      box(
+                                        title = "Chinook Salmon | Kekèsu | Oncorhynchus tshawytscha ",
+                                        "Chinook Salmon are the first to return each year, usually in early August, and have the most limited distribution within the watershed. Known spawning occurs in parts of the Horsefly River mainstem above the confluence with the Little Horsefly River and throughout McKinley Creek as far as Elbow Lake. Important rearing systems include Patenaude Creek, Kroener Creek, Black Creek, Woodjam Creek, Deerhorn Creek, and Wilmot Creek.",
+                                        id = "mybox",
+                                        collapsible = TRUE,
+                                        closable = FALSE
+                                      
+                                      ),
+                                      box(
+                                        title = "Coho Salmon | Sxeyqs | Oncorhynchus kisutch",
+                                        "Box body",
+                                        id = "mybox",
+                                        collapsible = TRUE,
+                                        closable = FALSE
+                                    
+                                      ),
+                                      box(
+                                        title = "Sockeye Salmon | Sqlelten7ùwi | Oncorhynchus nerka ",
+                                        "Box body",
+                                        id = "mybox",
+                                        collapsible = TRUE,
+                                        closable = FALSE,
+                                        plotOutput("png")
+                                      )
+                                      
+                                    ),
+                                  ),
                          )
              )
     ),
-    tabPanel("Prioritization process",
-            #  tabsetPanel(id = "intermediatetab",
-            #              tabPanel(value = "Tab_3", 
-            #                       #add content to tab panel
-            #                       # selectInput("priority", "Barrier List:", c("All" = "All", "Priority" = "Priority", "Intermediate" = "Intermediate"), selected = "Intermediate"),
-            #                       # selectInput("variable", "Barrier Status:", c("Passable" = "PASSABLE", "Barrier" = "BARRIER","Potential"="POTENTIAL","Unknown"="UNKNOWN"), selected = c("PASSABLE", "BARRIER","POTENTIAL","UNKNOWN"), multiple = TRUE),
-            #              )
-            #  )
+    tabPanel("Prioritization process"
       ),
     #create element to display an image on right side of navbar
     tags$script(HTML("var header = $('.navbar > .container-fluid');
@@ -118,6 +161,59 @@ ui <- fluidPage(
   )
 
 )
+
+# fluidRow(
+#                                     column(
+#                                       width = 6,
+#                                       uiOutput("active_side"), 
+#                                       actionButton("toggle", "Toggle flip box"),
+#                                       flipBox(
+#                                         id = "myflipbox", 
+#                                         trigger = "hover",
+#                                         width = 12,
+#                                         front = div(
+#                                           class = "text-center",
+#                                           h1("Flip on hover"),
+#                                           img(
+#                                             src = "https://image.flaticon.com/icons/svg/149/149076.svg",
+#                                             height = "300px",
+#                                             width = "100%"
+#                                           )
+#                                         ),
+#                                         back = div(
+#                                           class = "text-center",
+#                                           height = "300px",
+#                                           width = "100%",
+#                                           h1("Flip on hover"),
+#                                           p("More information....")
+#                                         )
+#                                       )
+#                                     ),
+#                                     column(
+#                                       width = 6,
+#                                       uiOutput("active_side_2"),
+#                                       flipBox(
+#                                         id = "myflipbox2",
+#                                         width = 12,
+#                                         front = div(
+#                                           class = "text-center",
+#                                           h1("Flip on click"),
+#                                           img(
+#                                             src = "https://image.flaticon.com/icons/svg/149/149076.svg",
+#                                             height = "300px",
+#                                             width = "100%"
+#                                           )
+#                                         ),
+#                                         back = div(
+#                                           class = "text-center",
+#                                           height = "300px",
+#                                           width = "100%",
+#                                           h1("Flip on click"),
+#                                           p("More information....")
+#                                         )
+#                                       )
+#                                     )
+#                                   )
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #popup formatting
@@ -285,8 +381,7 @@ server <- function(input, output, session) {
         )
     }
   })
-  
-  
+
   #leaflet map rendering
   output$mymap <- renderLeaflet({
 
@@ -312,10 +407,25 @@ server <- function(input, output, session) {
                        lat = ~lat,
                        lng = ~long,
 
-                       clusterOptions = markerClusterOptions(),
-                       color = ~col(barrier_status),
+                       clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+                          var childCount = cluster.getChildCount(); 
+                          var c = ' marker-custom-';  
+                          if (childCount < 5) {  
+                            c += 'large';  
+                          } else if (childCount < 50) {  
+                            c += 'medium';  
+                          } else { 
+                            c += 'small';  
+                          }    
+                          return new L.DivIcon({ html: '<div><span>' + childCount + '</span></div>', className: 'marker-cluster' + c, iconSize: new L.Point(40, 40) });
+
+                        }")),
+                       color = "white",
+                       fillColor = ~col(barrier_status),
                        popup = ~label,
                        group = "Passable",
+                       opacity = 1,
+                       fillOpacity = 0.90,
                        options = leafletOptions(pane = "maplabels")
       ) %>%
       addCircleMarkers(data = y() %>%
@@ -326,10 +436,25 @@ server <- function(input, output, session) {
                        lat = ~lat,
                        lng = ~long,
 
-                       clusterOptions = markerClusterOptions(),
-                       color = ~col(barrier_status),
+                       clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+    var childCount = cluster.getChildCount(); 
+    var c = ' marker-custom-';  
+    if (childCount < 5) {  
+      c += 'large';  
+    } else if (childCount < 50) {  
+      c += 'medium';  
+    } else { 
+      c += 'small';  
+    }    
+    return new L.DivIcon({ html: '<div><span>' + childCount + '</span></div>', className: 'marker-cluster' + c, iconSize: new L.Point(40, 40) });
+
+  }")),
+                       color = "white",
+                       fillColor = ~col(barrier_status),
                        popup = ~label,
                        group = "Barrier",
+                       opacity = 1,
+                       fillOpacity = 0.90,
                        options = leafletOptions(pane = "maplabels")
       ) %>%
       addCircleMarkers(data = y() %>%
@@ -339,10 +464,25 @@ server <- function(input, output, session) {
                        lat = ~lat,
                        lng = ~long,
 
-                       clusterOptions = markerClusterOptions(),
-                       color = ~col(barrier_status),
+                       clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+    var childCount = cluster.getChildCount(); 
+    var c = ' marker-custom-';  
+    if (childCount < 5) {  
+      c += 'large';  
+    } else if (childCount < 50) {  
+      c += 'medium';  
+    } else { 
+      c += 'small';  
+    }    
+    return new L.DivIcon({ html: '<div><span>' + childCount + '</span></div>', className: 'marker-cluster' + c, iconSize: new L.Point(40, 40) });
+
+  }")),
+                       color = "white",
+                       fillColor = ~col(barrier_status),
                        popup = ~label,
                        group = "Potential",
+                       opacity = 1,
+                       fillOpacity = 0.90,
                        options = leafletOptions(pane = "maplabels")
       ) %>%
       addCircleMarkers(data = y() %>%
@@ -352,13 +492,28 @@ server <- function(input, output, session) {
                        lat = ~lat,
                        lng = ~long,
 
-                       clusterOptions = markerClusterOptions(),
-                       color = ~col(barrier_status),
+                       clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+    var childCount = cluster.getChildCount(); 
+    var c = ' marker-custom-';  
+    if (childCount < 5) {  
+      c += 'large';  
+    } else if (childCount < 50) {  
+      c += 'medium';  
+    } else { 
+      c += 'small';  
+    }    
+    return new L.DivIcon({ html: '<div><span>' + childCount + '</span></div>', className: 'marker-cluster' + c, iconSize: new L.Point(40, 40) });
+
+  }")),
+                       color = "white",
+                       fillColor = ~col(barrier_status),
                        popup = ~label,
                        group = "Unknown",
+                       opacity = 1,
+                       fillOpacity = 0.90,
                        options = leafletOptions(pane = "maplabels")
                        ) %>%
-      addPolylines(data = df_str, color = "blue", opacity = 1,  label = ~paste0(gnis_name), group = "Streams", options = leafletOptions(pane = "maplabels")) %>%
+      addPolylines(data = df_str, color = "blue", opacity = 1,  label = ~paste0(gnis_name),  group = "Streams", options = leafletOptions(pane = "maplabels")) %>%
       #addPolylines(data = df_nonstr, color = "grey", group = "Non-Streams") %>%
       addPolygons(data = boundary, stroke = TRUE, fillOpacity = 0, smoothFactor = 0.5,
     color = "black", opacity = 1, group = "Watershed<br>Boundary", fillColor = NA, options = leafletOptions(pane = "polygons")) %>%
@@ -373,6 +528,19 @@ server <- function(input, output, session) {
         options = layersControlOptions(collapsed = FALSE)
       )
   })
+
+  #zoom_level = JS("function(map){ return map.getZoom(); }")
+
+  #zoom level for tooltip
+#   observe({
+#     if (is.null(input$mymap_zoom))
+#       return()
+#     isolate({
+#       leafletProxy(
+#         mapId = "mymap") %>%
+#         addPolylines(data = df_str, color = "blue", opacity = 1,  label = if(input$mymap_zoom < 8) gnis_name,  group = "Streams", options = leafletOptions(pane = "maplabels"))
+#     })
+# })
 
   # reference for gomap.js function
   observe({
@@ -442,6 +610,27 @@ server <- function(input, output, session) {
     }
   }
   )
+
+  ###New function
+  output$png <- renderPlot({
+    pic = readPNG('www/salmon.png')
+    plot.new()
+    grid::grid.raster(pic)
+
+  })
+
+  #Update connectivity status
+  observeEvent(input$refresh, {
+      updateProgressBar(session = session, id = "connect", value = watershed_connectivity("ALL"))
+    })
+
+  # observeEvent(input$myflipbox, {
+  #   print(input$myflipbox)
+  #       updateFlipBox("myflipbox")
+  #   })
+  
+
+
 
 }
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
