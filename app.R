@@ -51,6 +51,9 @@ watershed_connectivity <- function(habitat_type){
 
 acc_stream_res <- read_sf("https://features.hillcrestgeo.ca/bcfishpass/collections/bcfishpass.streams/items.json?properties=gnis_name&filter=watershed_group_code%20=%20%27HORS%27%20AND%20access_model_ch_co_sk%20IS%20NOT%20NULL")
 df_str <- st_zm(acc_stream_res)
+#df_str[is.na(df_str)] <- "Not Named"
+df_null <- df_str[rowSums(is.na(df_str)) != 0, ]
+df_str <- na.omit(df_str)
 
 non_stream_res <- read_sf("https://features.hillcrestgeo.ca/bcfishpass/collections/bcfishpass.streams/items.json?properties=gnis_name&filter=watershed_group_code%20=%20%27HORS%27%20AND%20access_model_ch_co_sk%20IS%20NULL")
 df_nonstr <- st_zm(non_stream_res)
@@ -96,8 +99,8 @@ ui <- fluidPage(
                          tabPanel(value = "Tab_2",
                                   useShinydashboard(),
                                   #add content to tab panel
-                                  selectInput("options", "Attribute", c("Barrier Status" = "barr", "Feature Type" = "type")),
                                   mainPanel(
+                                    selectInput("options", "Attribute", c("Barrier Status" = "barr", "Feature Type" = "type")),
                                     plotOutput("attr_bar")
                                   ),
                                   sidebarPanel(
@@ -109,7 +112,11 @@ ui <- fluidPage(
                                                   status = "custom"
                                       ),
                                       actionButton("refresh", "Update Status"),
-                                      br(),
+                                    )
+                                  ),
+                                  sidebarPanel(
+                                    #species boxes
+                                    fluidRow(
                                       h1("Species of Interest"),
                                       br(),
                                       box(
@@ -117,28 +124,82 @@ ui <- fluidPage(
                                         "Chinook Salmon are the first to return each year, usually in early August, and have the most limited distribution within the watershed. Known spawning occurs in parts of the Horsefly River mainstem above the confluence with the Little Horsefly River and throughout McKinley Creek as far as Elbow Lake. Important rearing systems include Patenaude Creek, Kroener Creek, Black Creek, Woodjam Creek, Deerhorn Creek, and Wilmot Creek.",
                                         id = "mybox",
                                         collapsible = TRUE,
-                                        closable = FALSE
+                                        closable = FALSE,
+                                        collapsed = TRUE
                                       
                                       ),
                                       box(
                                         title = "Coho Salmon | Sxeyqs | Oncorhynchus kisutch",
-                                        "Box body",
+                                        "Coho Salmon are the most widely distributed of the three focal species in the watershed, with the ability to migrate into smaller, upper tributary systems (DFO 1991). Spawning occurs in the Little Horsefly River between Gruhs Lake and Horsefly Lake, McKinley Creek below McKinley Lake, Woodjam Creek, Patenaude Creek, Tisdall Creek, and Black Creek. Rearing fry and juveniles have been observed in the Little Horsefly River, Patenaude Creek, and McKinley Creek up to Bosk Lake. ",
                                         id = "mybox",
                                         collapsible = TRUE,
-                                        closable = FALSE
+                                        closable = FALSE,
+                                        collapsed = TRUE
                                     
                                       ),
                                       box(
                                         title = "Sockeye Salmon | Sqlelten7ùwi | Oncorhynchus nerka ",
-                                        "Box body",
+                                        "Sockeye Salmon have historically been the most abundant of the three focal species in the watershed, though the population has seen significant declines in recent years (DFO 1991, S. Hocquard pers. comm.). Sockeye Salmon spawning is known to occur throughout the Horsefly River (up to the impassable falls), in the Little Horsefly River between Gruhs Lake and Horsefly Lake, Moffat Creek (up to the impassible falls), and McKinley Creek up to Elbow Lake (PSF 2018, DFO 1991, S. Hocquard pers. comm.). Additionally, a spawning channel aimed at enhancing the Sockeye Salmon population was constructed by Fisheries and Oceans Canada in 1989 (DFO 1991). Currently, there are no Sockeye Salmon rearing in the Horsefly River watershed – all emergent fry migrate down to Quesnel Lake.",
                                         id = "mybox",
                                         collapsible = TRUE,
                                         closable = FALSE,
-                                        plotOutput("png")
-                                      )
-                                      
+                                        collapsed = TRUE
+                                      ),
                                     ),
+                                      
                                   ),
+                                    #barriers boxes
+                                    sidebarPanel(fluidRow(
+                                      h1("Barrier Types"),
+                                      br(),
+                                      box(
+                                        title = "Small Dams (<3 m height)",
+                                        "There are nine mapped small dams on “potentially accessible” stream segments in the watershed, blocking a total of 8.09 km (~23% of the total blocked habitat) of modelled spawning and rearing habitat for anadromous salmon, resulting in a Medium extent. The extent rating of these structures was confirmed by the planning team. There are two known fish-passage structures in the watershed, including on the dam at the outlet of McKinley Lake. The remaining dams likely block passage for anadromous salmon and would require significant resources to remediate. However, due to the limited extent of dams in the watershed, a final pressure rating of Medium was assigned. Four small dams were identified on the priority barrier list. Three of the dams require further assessment and confirmation of upstream habitat quality, and the dam observed at the outlet of Kwun Lake does not exist.",
+                                        id = "mybox",
+                                        collapsible = TRUE,
+                                        closable = FALSE,
+                                        collapsed = TRUE
+                                      
+                                      ),
+                                      box(
+                                        title = "Road-stream Crossings",
+                                        "Road-stream crossings are the most abundant barrier type in the watershed, with 103 assessed and modelled crossings located on stream segments with modelled habitat. Demographic road crossings (highways, municipal, and paved roads) block 7.31 km of habitat (~21% of the total blocked habitat), with 73% of assessed crossings having been identified as barriers to fish passage. Resource roads block 19.57 km of habitat (~56%), with 60% of assessed crossings having been identified as barriers. The planning team felt that the data was underestimating the severity of road-stream crossing barriers in the watershed, and therefore decided to update the rating from High to Very High. The planning team also felt that an irreversibility rating of Medium was appropriate due to the technical complexity and resources required to remediate road-stream crossings.",
+                                        id = "mybox",
+                                        collapsible = TRUE,
+                                        closable = FALSE,
+                                        collapsed = TRUE
+                                    
+                                      ),
+                                      box(
+                                        title = "Trail-stream crossings",
+                                        "There is very little spatial data available on trail-stream crossings in the watershed, so the planning team was unable to quantify the true Extent and Severity of this barrier type. However, the planning team felt that trail-stream crossings are not prevalent within the watershed and that, where they do exist, they do not significantly impact passage for anadromous salmon. As most crossings will be fords or similar structures, remediation may not be required, or remediation costs associated with these barriers would be quite low. Overall, the planning team felt that the pressure rating for trail-stream crossings was likely Low; however, the lack of ground-truthed evidence to support this rating was identified as a knowledge gap within this plan.",
+                                        id = "mybox",
+                                        collapsible = TRUE,
+                                        closable = FALSE,
+                                        collapsed = TRUE
+                                      ),
+                                      box(
+                                        title = "Lateral Barriers",
+                                        "There are numerous types of lateral barriers that potentially occur in the watershed, including dykes, berms, and linear development (i.e., road and rail lines), all of which can restrict the ability of anadromous salmon to move into floodplains, riparian wetlands, and other off-channel habitats. No comprehensive lateral barrier data exists within the watershed, so pressure ratings were based on qualitative local knowledge. Lateral barriers are not thought to be as prevalent as road- or rail-stream crossings but are likely very severe where they do exist. Significant lateral barriers are known to occur along the mainstem of the Horsefly River, which disconnect the mainstem river from historic floodplain and off-channel habitat. Overall, the planning team decided that a High pressure rating adequately captured the effect that lateral barriers are having on connectivity in the watershed. Work to begin quantifying and mapping lateral habitat will begin in 2022-23, as described in the Operational Plan under Strategy 2: Lateral barrier remediation. ",
+                                        id = "mybox",
+                                        collapsible = TRUE,
+                                        closable = FALSE,
+                                        collapsed = TRUE
+                                      ),
+                                      box(
+                                        title = "Natural Barriers",
+                                        "Natural barriers to fish passage can include debris flows, log jams, sediment deposits, etc., but natural features that have always restricted fish passage (e.g., waterfalls) are not considered under this barrier type. Natural barriers are difficult to include in a spatial prioritization framework due to their transient nature. The planning team identified known natural barriers that occur throughout the watershed, such as beaver dams and log jams. Generally, these natural barriers are only severe impediments to fish passage during low-flow years, but reduced baseflows have become more common in recent years. Based on this, the planning team felt that natural barriers will be severe most years where they exist, but are mostly reversible, resulting in an overall pressure rating of Low.",
+                                        id = "mybox",
+                                        collapsible = TRUE,
+                                        closable = FALSE,
+                                        collapsed = TRUE
+                                      )
+                                     
+                                    )),
+                                    plotOutput("attr_pie"),
+                                    div(tags$img(src = "www/salmon.png", alt = "something went wrong", deleteFile = FALSE), style = "text_align: center;")
+
+                                  
                          )
              )
     ),
@@ -155,10 +216,10 @@ ui <- fluidPage(
                                   ),
                                   tags$hr(style="border-color: white;"),
                                   fluidRow(id = "row2",
-                                           column(5,
+                                           column(7,
                                                   leafletOutput("mymap")
                                            ),
-                                           column(7,
+                                           column(5,
                                                   dataTableOutput("mytable")
                                            ),
                                   )
@@ -411,14 +472,7 @@ server <- function(input, output, session) {
     addMapPane(name = "polygons", zIndex = 410) %>%
     addMapPane(name = "maplabels", zIndex = 420) %>% # higher zIndex rendered on top
       addTiles() %>%
-      addProviderTiles(providers$Stamen.Toner, group = "Toner") %>%
-      addProviderTiles(providers$Stamen.TonerLite, group = "Toner Lite") %>%
       addMapboxGL(style = "mapbox://styles/mapbox/streets-v9", group = "Mapbox", options = leafletOptions(pane = "polygons")) %>%
-      # addWMSTiles("http://maps.geogratis.gc.ca/wms/hydro_network_en?version=1.3.0",
-      #             layers = "nhn:nhn:drainageareas:nhnda",
-      #             options = WMSTileOptions(format = "image/png", transparent = TRUE),
-      #             attribution = "Government of Canada; Natural Resources Canada; Strategic Policy and Innovation Sector",
-      #             group = "Watershed") %>%
       addMapboxGL(style = "mapbox://styles/mapbox/satellite-v9", group = "Mapbox<br>Satellite", options = leafletOptions(pane = "polygons")) %>%
       addCircleMarkers(data = y() %>%
 
@@ -534,13 +588,14 @@ server <- function(input, output, session) {
                        fillOpacity = 0.90,
                        options = leafletOptions(pane = "maplabels")
                        ) %>%
-      addPolylines(data = df_str, color = "blue", opacity = 1,  label = ~paste0(gnis_name),  group = "Streams", options = leafletOptions(pane = "maplabels")) %>%
+      addPolylines(data = df_str, color = "blue", opacity = 1, label = ~paste0(gnis_name),  group = "Streams", options = leafletOptions(pane = "maplabels")) %>%
+      addPolylines(data = df_null, color = "blue", opacity = 1,  group = "Streams", options = leafletOptions(pane = "maplabels")) %>%
       #addPolylines(data = df_nonstr, color = "grey", group = "Non-Streams") %>%
       addPolygons(data = boundary, stroke = TRUE, fillOpacity = 0, smoothFactor = 0.5,
     color = "black", opacity = 1, group = "Watershed<br>Boundary", fillColor = NA, options = leafletOptions(pane = "polygons")) %>%
       addEasyButton(easyButton(
         icon = "fa-home", title = "Deafult View",
-        onClick = JS("function(btn, map){ map.setZoom(9); }"))) %>%
+        onClick = JS("function(btn, map){ map.setView([52.280408375,	-121.005149476], 10); }"))) %>%
       addLegend("topright", pal = col, values = df$barrier_status) %>%
       # Layers control
       addLayersControl(
@@ -612,7 +667,8 @@ server <- function(input, output, session) {
       ggplot(df1, aes(x=barrier_status, y=Perc, fill=barrier_status)) +
       geom_bar(stat="identity") + 
       geom_text(aes(label=scales::percent(Freq)), position = position_stack(vjust = .5)) +
-      labs(title = "Attribute Summary for HORS", x = "Barrier Status", y = "Proportion %", fill="barrier_status") +
+      labs(title = "Attribute Summary for HORS", x = "Barrier Status", y = "Proportion %", fill="Barrier Status") +
+      scale_fill_manual(values=c("#d52a2a", "#32cd32", "#ffb400", "#965ab3")) +
       theme(plot.title = element_text(hjust = 0.5))
       #scale_fill_discrete(name= "Type")
     }
@@ -625,8 +681,45 @@ server <- function(input, output, session) {
       ggplot(df1, aes(x=crossing_feature_type, y=Perc, fill=crossing_feature_type)) +
       geom_bar(stat="identity") + 
       geom_text(aes(label=scales::percent(Freq)), position = position_stack(vjust = .5)) +
-      labs(title = "Attribute Summary for HORS", x = "Feature Type", y = "Proportion %", fill="crossing_feature_type") + 
+      labs(title = "Attribute Summary for HORS", x = "Feature Type", y = "Proportion %", fill="Crossing Feature Type") + 
       theme(plot.title = element_text(hjust = 0.5))
+      #scale_fill_discrete(name= "Type")
+    }
+  }
+  )
+
+  #pie chart attempt
+  output$attr_pie <- renderPlot(width = "auto",
+  height = "auto",
+  res = 150,
+  {
+    if (input$options == "barr"){
+      df1 <- df %>%
+            count(barrier_status) %>%
+            mutate(Perc = (n/sum(n)) * 100) %>%
+            mutate(Freq = n/sum(n))
+
+      ggplot(df1, aes(x="", y=Perc, fill = barrier_status)) +
+      geom_bar(stat="identity", width=1, color="white") +
+      coord_polar("y", start=0) +
+      geom_text(aes(label=scales::percent(Freq)), position = position_stack(vjust = .5)) +
+      labs(title = "Attribute Summary for HORS", x = "Barrier Status", y = "Proportion %", fill="Barrier Status") +
+      scale_fill_manual(values=c("#d52a2a", "#32cd32", "#ffb400", "#965ab3")) +
+      theme_void() # remove background, grid, numeric labels
+      #scale_fill_discrete(name= "Type")
+    }
+    else if (input$options == "type"){
+      df1 <- df %>%
+            count(crossing_feature_type) %>%
+            mutate(Perc = (n/sum(n)) * 100) %>%
+            mutate(Freq = n/sum(n))
+
+      ggplot(df1, aes(x="", y=Perc, fill=crossing_feature_type)) +
+      geom_bar(stat="identity", width=1, color="white") +
+      coord_polar("y", start=0) +
+      geom_text(aes(label=scales::percent(Freq)), position = position_stack(vjust = .5)) +
+      labs(title = "Attribute Summary for HORS", x = "Feature Type", y = "Proportion %", fill="Crossing Feature Type") + 
+      theme_void() # remove background, grid, numeric labels
       #scale_fill_discrete(name= "Type")
     }
   }
@@ -644,13 +737,6 @@ server <- function(input, output, session) {
   observeEvent(input$refresh, {
       updateProgressBar(session = session, id = "connect", value = watershed_connectivity("ALL"))
     })
-
-  # observeEvent(input$myflipbox, {
-  #   print(input$myflipbox)
-  #       updateFlipBox("myflipbox")
-  #   })
-  
-
 
 
 }
