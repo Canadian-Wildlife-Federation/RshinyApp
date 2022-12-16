@@ -153,10 +153,11 @@ label#variable-label.control-label, label#priority-label.control-label {
 }
 
 
-.progress-bar-custom {background-color: #00FF00; color: black;}
+.progress-bar-custom {background-color: #0a6e0a; color: rgb(255, 253, 253); font-size: larger;}
 
 .marker-custom-small {
     background-color: rgba(220,220,220, 1);
+    color: white;
       }
   .marker-customr-small div {
       background-color: rgba(128,128,128, 1);
@@ -164,6 +165,7 @@ label#variable-label.control-label, label#priority-label.control-label {
 
   .marker-custom-medium {
       background-color: rgba(220,220,220, 1);
+      color: white;
       }
   .marker-custom-medium div {
       background-color: rgba(105,105,105, 1);
@@ -171,6 +173,7 @@ label#variable-label.control-label, label#priority-label.control-label {
 
   .marker-custom-large {
       background-color: rgba(220,220,220, 1);
+      color: white;
       }
   .marker-custom-large div {
       background-color: rgba(119,136,153, 1);

@@ -34,17 +34,27 @@ df <- crossings_res %>%
 
 boundary <- read_sf("https://features.hillcrestgeo.ca/fwa/collections/whse_basemapping.fwa_watershed_groups_poly/items.json?watershed_group_code=HORS")
 
+
+
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 #watershed connectivity function
 watershed_connectivity <- function(habitat_type){
   request <- paste('https://features.hillcrestgeo.ca/bcfishpass/functions/postgisftw.wcrp_watershed_connectivity_status/items.json?watershed_group_code=HORS&barrier_type=',habitat_type, sep = "")
-  res <-GET(request)
+  res <- GET(request)
   data <- fromJSON(rawToChar(res$content))
   return(data$connectivity_status)
-
 }
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+#static statistics
+hab_conf <- sum(df$pscis_status == "HABITAT CONFIRMATION", na.rm = TRUE)
+assessed <- sum(is.na(df$pscis_assessment_date))
+total <- 526.95 #total km in HORS
+access <- round(total * (watershed_connectivity("ALL") / 100), 2)
+gain <- round(total - access, 2)
+
+#-------------------------------------------------------------------------------------------------------------------------
 
 #stream vector tile reading (just geojson for now)
 #-----------------------------------------------------------------------------
@@ -109,9 +119,12 @@ ui <- fluidPage(
                                                   value = watershed_connectivity("ALL"),
                                                   display_pct = TRUE,
                                                   title = "Overall Connectivity Status",
-                                                  status = "custom"
+                                                  status = "custom",
+                                                  total = 100,
+                                                  striped = TRUE,
                                       ),
                                       actionButton("refresh", "Update Status"),
+                                      plotOutput("progress")
                                     )
                                   ),
                                   sidebarPanel(
@@ -196,6 +209,10 @@ ui <- fluidPage(
                                       )
                                      
                                     )),
+                                    h1(paste0("Assessments done : ", toString(assessed))),
+                                    h1(paste0("# of barriers with Habitat Confirmations : ", toString(hab_conf))),
+                                    h1(paste0("Total km blocked : ", toString(gain), "km")),
+                                    h1(paste0("# of crossings on accessible streams: ", length(df$aggregated_crossings_id))),
                                     plotOutput("attr_pie"),
                                     div(tags$img(src = "www/salmon.png", alt = "something went wrong", deleteFile = FALSE), style = "text_align: center;")
 
@@ -588,7 +605,14 @@ server <- function(input, output, session) {
                        fillOpacity = 0.90,
                        options = leafletOptions(pane = "maplabels")
                        ) %>%
-      addPolylines(data = df_str, color = "blue", opacity = 1, label = ~paste0(gnis_name),  group = "Streams", options = leafletOptions(pane = "maplabels")) %>%
+      addPolylines(data = df_str, color = "blue", opacity = 1, label = ~paste0(gnis_name),
+      labelOptions = labelOptions(
+        style = list(
+          "color" = "black",
+          "box-shadow" = "3px 3px rgba(0,0,0,0.25)",
+          "font-size" = "15px",
+          "border-color" = "rgba(0,0,0,0.5)"
+      )),  group = "Streams", options = leafletOptions(pane = "maplabels")) %>%
       addPolylines(data = df_null, color = "blue", opacity = 1,  group = "Streams", options = leafletOptions(pane = "maplabels")) %>%
       #addPolylines(data = df_nonstr, color = "grey", group = "Non-Streams") %>%
       addPolygons(data = boundary, stroke = TRUE, fillOpacity = 0, smoothFactor = 0.5,
@@ -670,7 +694,6 @@ server <- function(input, output, session) {
       labs(title = "Attribute Summary for HORS", x = "Barrier Status", y = "Proportion %", fill="Barrier Status") +
       scale_fill_manual(values=c("#d52a2a", "#32cd32", "#ffb400", "#965ab3")) +
       theme(plot.title = element_text(hjust = 0.5))
-      #scale_fill_discrete(name= "Type")
     }
     else if (input$options == "type"){
       df1 <- df %>%
@@ -683,7 +706,6 @@ server <- function(input, output, session) {
       geom_text(aes(label=scales::percent(Freq)), position = position_stack(vjust = .5)) +
       labs(title = "Attribute Summary for HORS", x = "Feature Type", y = "Proportion %", fill="Crossing Feature Type") + 
       theme(plot.title = element_text(hjust = 0.5))
-      #scale_fill_discrete(name= "Type")
     }
   }
   )
@@ -706,7 +728,6 @@ server <- function(input, output, session) {
       labs(title = "Attribute Summary for HORS", x = "Barrier Status", y = "Proportion %", fill="Barrier Status") +
       scale_fill_manual(values=c("#d52a2a", "#32cd32", "#ffb400", "#965ab3")) +
       theme_void() # remove background, grid, numeric labels
-      #scale_fill_discrete(name= "Type")
     }
     else if (input$options == "type"){
       df1 <- df %>%
@@ -720,10 +741,22 @@ server <- function(input, output, session) {
       geom_text(aes(label=scales::percent(Freq)), position = position_stack(vjust = .5)) +
       labs(title = "Attribute Summary for HORS", x = "Feature Type", y = "Proportion %", fill="Crossing Feature Type") + 
       theme_void() # remove background, grid, numeric labels
-      #scale_fill_discrete(name= "Type")
     }
   }
   )
+
+  #progressbar plot
+  #theme_void() + theme(legend.position="none")
+  output$progress <- renderPlot(width = "auto",
+    height = "auto",
+    res = 150,
+    {
+    df <- data.frame(perc <- c(7, 93), val <- c("connected", "disconnected"))
+    ggplot(data = df, aes(x="", y=perc, fill = val)) + geom_bar(stat="identity", width = 0.1) + coord_flip() +
+    geom_text(aes(label=scales::percent(perc/100)), position = position_stack(vjust = .5), color = "white") + 
+    theme_void() + theme(legend.position = "none") +
+    scale_fill_manual(values = c("#d52a2a", "#32cd32"))
+  })
 
   ###New function
   output$png <- renderPlot({
