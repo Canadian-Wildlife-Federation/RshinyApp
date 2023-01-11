@@ -94,7 +94,7 @@ labs <- as.list(df_str$gnis_name)
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 options(mapbox.accessToken = "pk.eyJ1IjoidG9tYXMtbWsiLCJhIjoiY2w5b2JjNnl0MGR2YjN1bXpjenUwa2hnZyJ9.s21BqE7q2yEgDKFE5zNp_g", mapbox.antialias = TRUE)
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
-
+#addResourcePath("www", "C:/CABD/GitHub/Canadian-Wildlife-Federation/BC_WRCP/RshinyApp/www")
 #main app page
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 ui <- fluidPage(
@@ -102,125 +102,168 @@ ui <- fluidPage(
   #include JS function
   includeScript("gomap.js"),
   #create top navbar
-  navbarPage("WCRP Dashboard",
+  navbarPage("WCRP Dashboard", #position = "fixed-top",
     #create tabs in nav bar
     tabPanel("Useful Statistics",
              tabsetPanel(id = "prioritytab",
                          tabPanel(value = "Tab_2",
                                   useShinydashboard(),
                                   #add content to tab panel
-                                  mainPanel(
+                                           fluidRow(
+                                             box(width = 12, title = "Watershed Overview", "Status of Connectivity: % of Total Linear Habitat", id = 'constatus',
+                                                 #h3("Watershed Overview"),
+                                                 shinyWidgets::progressBar(id = "connect",
+                                                                       value = watershed_connectivity("ALL"),
+                                                                       display_pct = TRUE,
+                                                                       status = "custom",
+                                                                       total = 100,
+                                                                       striped = TRUE),
+                                                 #actionButton("refresh", "Update Status"),
+                                                   column(width=3,
+                                                          valueBox(assessed, "Assessments Done", icon = icon("solid fa-clipboard-check"))),
+                                                   column(width=3,
+                                                          valueBox(hab_conf, "Habitat Confirmations", icon = icon("solid fa-seedling"))),
+                                                   column(width=3,
+                                                          valueBox(paste0(toString(gain), " km"), "Amount of Stream Blocked", icon = icon("solid fa-road-barrier"))),
+                                                   column(width=3,
+                                                          valueBox(paste0(length(df$aggregated_crossings_id)), "Barriers on Accessible Streams", icon = icon("solid fa-water"))))), 
+
+                                          fluidRow(
+                                             column(width=5,
+                                                  
+                                                    fluidRow(
+                                                      box(width = 12, title = "Summary of Passability",
+                                                        #barrier types
+                                                        fluidRow(
+                                                          plotOutput("attr_pie")
+                                                        ),
+                                                        fluidRow(
+                                                          #h3("Barrier Types"),
+                                                          br(),
+                                                          box(
+                                                            title = "Small Dams (<3 m height)",
+                                                            p("There are nine mapped small dams on “potentially accessible” stream segments in the watershed, blocking a total of 8.09 km (~23% of the total blocked habitat) of modelled spawning and rearing habitat for anadromous salmon, resulting in a Medium extent. The extent rating of these structures was confirmed by the planning team."), p("There are two known fish-passage structures in the watershed, including on the dam at the outlet of McKinley Lake. The remaining dams likely block passage for anadromous salmon and would require significant resources to remediate. However, due to the limited extent of dams in the watershed, a final pressure rating of Medium was assigned."), p("Four small dams were identified on the priority barrier list. Three of the dams require further assessment and confirmation of upstream habitat quality, and the dam observed at the outlet of Kwun Lake does not exist."),
+                                                            id = "expanders",
+                                                            collapsible = TRUE,
+                                                            closable = FALSE,
+                                                            collapsed = TRUE
+                                                          ),
+                                                          box(
+                                                            title = "Road-stream Crossings",
+                                                            "Road-stream crossings are the most abundant barrier type in the watershed, with 103 assessed and modelled crossings located on stream segments with modelled habitat. Demographic road crossings (highways, municipal, and paved roads) block 7.31 km of habitat (~21% of the total blocked habitat), with 73% of assessed crossings having been identified as barriers to fish passage. Resource roads block 19.57 km of habitat (~56%), with 60% of assessed crossings having been identified as barriers. The planning team felt that the data was underestimating the severity of road-stream crossing barriers in the watershed, and therefore decided to update the rating from High to Very High. The planning team also felt that an irreversibility rating of Medium was appropriate due to the technical complexity and resources required to remediate road-stream crossings.",
+                                                            id = "expanders",
+                                                            collapsible = TRUE,
+                                                            closable = FALSE,
+                                                            collapsed = TRUE
+                                                          ),
+                                                          box(
+                                                            title = "Trail-stream crossings",
+                                                            "There is very little spatial data available on trail-stream crossings in the watershed, so the planning team was unable to quantify the true Extent and Severity of this barrier type. However, the planning team felt that trail-stream crossings are not prevalent within the watershed and that, where they do exist, they do not significantly impact passage for anadromous salmon. As most crossings will be fords or similar structures, remediation may not be required, or remediation costs associated with these barriers would be quite low. Overall, the planning team felt that the pressure rating for trail-stream crossings was likely Low; however, the lack of ground-truthed evidence to support this rating was identified as a knowledge gap within this plan.",
+                                                            id = "expanders",
+                                                            collapsible = TRUE,
+                                                            closable = FALSE,
+                                                            collapsed = TRUE
+                                                          ),
+                                                          box(
+                                                            title = "Lateral Barriers",
+                                                            "There are numerous types of lateral barriers that potentially occur in the watershed, including dykes, berms, and linear development (i.e., road and rail lines), all of which can restrict the ability of anadromous salmon to move into floodplains, riparian wetlands, and other off-channel habitats. No comprehensive lateral barrier data exists within the watershed, so pressure ratings were based on qualitative local knowledge. Lateral barriers are not thought to be as prevalent as road- or rail-stream crossings but are likely very severe where they do exist. Significant lateral barriers are known to occur along the mainstem of the Horsefly River, which disconnect the mainstem river from historic floodplain and off-channel habitat. Overall, the planning team decided that a High pressure rating adequately captured the effect that lateral barriers are having on connectivity in the watershed. Work to begin quantifying and mapping lateral habitat will begin in 2022-23, as described in the Operational Plan under Strategy 2: Lateral barrier remediation. ",
+                                                            id = "expanders",
+                                                            collapsible = TRUE,
+                                                            closable = FALSE,
+                                                            collapsed = TRUE
+                                                          ),
+                                                          box(
+                                                            title = "Natural Barriers",
+                                                            "Natural barriers to fish passage can include debris flows, log jams, sediment deposits, etc., but natural features that have always restricted fish passage (e.g., waterfalls) are not considered under this barrier type. Natural barriers are difficult to include in a spatial prioritization framework due to their transient nature. The planning team identified known natural barriers that occur throughout the watershed, such as beaver dams and log jams. Generally, these natural barriers are only severe impediments to fish passage during low-flow years, but reduced baseflows have become more common in recent years. Based on this, the planning team felt that natural barriers will be severe most years where they exist, but are mostly reversible, resulting in an overall pressure rating of Low.",
+                                                            id = "expanders",
+                                                            collapsible = TRUE,
+                                                            closable = FALSE,
+                                                            collapsed = TRUE
+                                                          ))))
+                                                    ),
+                                             column(width=7,
+                                                    fluidRow(
+                                                      box(width = 12, title = "Connectivity Goals", id = 'congoals', style="align-items:center;",
+                                                          
+                                                          infoBox("By 2040, the percent (%) of total linear habitat accessible to anadromous salmon will increase from 94% to 96% within the Horsefly River watershed (i.e., reconnect at least 11.7 km of habitat).", "", icon = icon("solid fa-1"), fill = TRUE),
+                                                          infoBox("By 2024, the total area of overwintering habitat accessible to Anadromous Salmon will increase by 1,500 m2 within the Horsefly River watershed.", "", icon = icon("solid fa-2"), fill = TRUE)
+                                                      )),
+                                                    fluidRow(
+                                                      box(width = 12, title = "Species of Interest", id = "species",
+                                                      #species boxes
+                                                      fluidRow(
+                                                        box(
+                                                          tags$img(src = "https://media.fisheries.noaa.gov/dam-migration/750x500-chinook-salmon.jpg?itok=DF6fsFXy", style="width:100%; align = center"), 
+                                                          tags$figcaption("Credit: Roger Tabor, USFWS", style="text-align:right; font-size:smaller"),
+                                                          br(),
+                                                          title = "Chinook Salmon | Kekèsu | Oncorhynchus tshawytscha ",
+                                                          "Chinook Salmon are the first to return each year, usually in early August, and have the most limited distribution within the watershed. Known spawning occurs in parts of the Horsefly River mainstem above the confluence with the Little Horsefly River and throughout McKinley Creek as far as Elbow Lake. Important rearing systems include Patenaude Creek, Kroener Creek, Black Creek, Woodjam Creek, Deerhorn Creek, and Wilmot Creek.",
+                                                          id = "expanders",
+                                                          collapsible = TRUE,
+                                                          closable = FALSE,
+                                                          collapsed = TRUE
+                                                        ),
+                                                        box(
+                                                          tags$img(src = "https://media.fisheries.noaa.gov/dam-migration/750x500-coho-salmon.jpg?itok=lan8JjNI", style="width:100%; align = center"), 
+                                                          tags$figcaption("Credit: NOAA Fisheries", style="text-align:right; font-size:smaller"),
+                                                          br(),
+                                                          title = "Coho Salmon | Sxeyqs | Oncorhynchus kisutch",
+                                                          "Coho Salmon are the most widely distributed of the three focal species in the watershed, with the ability to migrate into smaller, upper tributary systems (DFO 1991). Spawning occurs in the Little Horsefly River between Gruhs Lake and Horsefly Lake, McKinley Creek below McKinley Lake, Woodjam Creek, Patenaude Creek, Tisdall Creek, and Black Creek. Rearing fry and juveniles have been observed in the Little Horsefly River, Patenaude Creek, and McKinley Creek up to Bosk Lake. ",
+                                                          id = "expanders",
+                                                          collapsible = TRUE,
+                                                          closable = FALSE,
+                                                          collapsed = TRUE
+                                                        ),
+                                                        box(
+                                                          tags$img(src = "https://media.fisheries.noaa.gov/styles/full_width/s3/dam-migration/750x500-chinook-salmon.jpg?itok=DF6fsFXy", style="width:100%; align = center"), 
+                                                          tags$figcaption("Credit: Michael Humling, USFWS", style="text-align:right; font-size:smaller"),
+                                                          br(),
+                                                          title = "Sockeye Salmon | Sqlelten7ùwi | Oncorhynchus nerka ",
+                                                          "Sockeye Salmon have historically been the most abundant of the three focal species in the watershed, though the population has seen significant declines in recent years (DFO 1991, S. Hocquard pers. comm.). Sockeye Salmon spawning is known to occur throughout the Horsefly River (up to the impassable falls), in the Little Horsefly River between Gruhs Lake and Horsefly Lake, Moffat Creek (up to the impassible falls), and McKinley Creek up to Elbow Lake (PSF 2018, DFO 1991, S. Hocquard pers. comm.). Additionally, a spawning channel aimed at enhancing the Sockeye Salmon population was constructed by Fisheries and Oceans Canada in 1989 (DFO 1991). Currently, there are no Sockeye Salmon rearing in the Horsefly River watershed – all emergent fry migrate down to Quesnel Lake.",
+                                                          id = "expanders",
+                                                          collapsible = TRUE,
+                                                          closable = FALSE,
+                                                          collapsed = TRUE
+                                                        )))),
+                                                    
+                                                    fluidRow(
+                                                      box(width = 12, title = "First Nations Partners", id = "species",
+                                                          fluidRow(
+                                                            column(width = 3,
+                                                                   div(class="territoriesmap", img(src="territories.png", style="width:40%;")),
+                                                            ),
+                                                            column(width = 5,
+                                                              p("The Horsefly River watershed comprises parts of Secwepemcúl’ecw, the traditional territory of the Northern Secwepemc te Qelmucw (NStQ), represented by the Northern Shuswap Tribal Council and four member communities or autonomous nations:",
+                                                                tags$div(
+                                                                  tags$ul(
+                                                                    tags$li("Xatśūll Cmetem’ (Soda Creek First Nations)"),
+                                                                    tags$li("Stswēceḿc Xgāt’tem (Canoe Creek/Dog Creek First Nations)"),
+                                                                    tags$li("T’ēxelc (Williams Lake First Nation)"),
+                                                                    tags$li("Tsq’ēsceń (Canim Lake First Nation))")
+                                                                  )
+                                                                )
+                                                              )
+                                                            )
+                                                          )
+                                                      )
+                                                    )
+                                                  
+                                           )),
+                                  
+                                  
+                                  
+                                  
+                                  #------------------------
+                                  fluidRow(
                                     selectInput("options", "Attribute", c("Barrier Status" = "barr", "Feature Type" = "type")),
                                     plotOutput("attr_bar")
                                   ),
-                                  sidebarPanel(
-                                    fluidRow(
-                                      shinyWidgets::progressBar(id = "connect",
-                                                  value = watershed_connectivity("ALL"),
-                                                  display_pct = TRUE,
-                                                  title = "Overall Connectivity Status",
-                                                  status = "custom",
-                                                  total = 100,
-                                                  striped = TRUE,
-                                      ),
-                                      actionButton("refresh", "Update Status"),
-                                      plotOutput("progress")
-                                    )
-                                  ),
-                                  sidebarPanel(
-                                    #species boxes
-                                    fluidRow(
-                                      h1("Species of Interest"),
-                                      br(),
-                                      box(
-                                        title = "Chinook Salmon | Kekèsu | Oncorhynchus tshawytscha ",
-                                        "Chinook Salmon are the first to return each year, usually in early August, and have the most limited distribution within the watershed. Known spawning occurs in parts of the Horsefly River mainstem above the confluence with the Little Horsefly River and throughout McKinley Creek as far as Elbow Lake. Important rearing systems include Patenaude Creek, Kroener Creek, Black Creek, Woodjam Creek, Deerhorn Creek, and Wilmot Creek.",
-                                        id = "mybox",
-                                        collapsible = TRUE,
-                                        closable = FALSE,
-                                        collapsed = TRUE
-                                      
-                                      ),
-                                      box(
-                                        title = "Coho Salmon | Sxeyqs | Oncorhynchus kisutch",
-                                        "Coho Salmon are the most widely distributed of the three focal species in the watershed, with the ability to migrate into smaller, upper tributary systems (DFO 1991). Spawning occurs in the Little Horsefly River between Gruhs Lake and Horsefly Lake, McKinley Creek below McKinley Lake, Woodjam Creek, Patenaude Creek, Tisdall Creek, and Black Creek. Rearing fry and juveniles have been observed in the Little Horsefly River, Patenaude Creek, and McKinley Creek up to Bosk Lake. ",
-                                        id = "mybox",
-                                        collapsible = TRUE,
-                                        closable = FALSE,
-                                        collapsed = TRUE
-                                    
-                                      ),
-                                      box(
-                                        title = "Sockeye Salmon | Sqlelten7ùwi | Oncorhynchus nerka ",
-                                        "Sockeye Salmon have historically been the most abundant of the three focal species in the watershed, though the population has seen significant declines in recent years (DFO 1991, S. Hocquard pers. comm.). Sockeye Salmon spawning is known to occur throughout the Horsefly River (up to the impassable falls), in the Little Horsefly River between Gruhs Lake and Horsefly Lake, Moffat Creek (up to the impassible falls), and McKinley Creek up to Elbow Lake (PSF 2018, DFO 1991, S. Hocquard pers. comm.). Additionally, a spawning channel aimed at enhancing the Sockeye Salmon population was constructed by Fisheries and Oceans Canada in 1989 (DFO 1991). Currently, there are no Sockeye Salmon rearing in the Horsefly River watershed – all emergent fry migrate down to Quesnel Lake.",
-                                        id = "mybox",
-                                        collapsible = TRUE,
-                                        closable = FALSE,
-                                        collapsed = TRUE
-                                      ),
-                                    ),
-                                      
-                                  ),
                                     #barriers boxes
-                                    sidebarPanel(fluidRow(
-                                      h1("Barrier Types"),
-                                      br(),
-                                      box(
-                                        title = "Small Dams (<3 m height)",
-                                        "There are nine mapped small dams on “potentially accessible” stream segments in the watershed, blocking a total of 8.09 km (~23% of the total blocked habitat) of modelled spawning and rearing habitat for anadromous salmon, resulting in a Medium extent. The extent rating of these structures was confirmed by the planning team. There are two known fish-passage structures in the watershed, including on the dam at the outlet of McKinley Lake. The remaining dams likely block passage for anadromous salmon and would require significant resources to remediate. However, due to the limited extent of dams in the watershed, a final pressure rating of Medium was assigned. Four small dams were identified on the priority barrier list. Three of the dams require further assessment and confirmation of upstream habitat quality, and the dam observed at the outlet of Kwun Lake does not exist.",
-                                        id = "mybox",
-                                        collapsible = TRUE,
-                                        closable = FALSE,
-                                        collapsed = TRUE
-                                      
-                                      ),
-                                      box(
-                                        title = "Road-stream Crossings",
-                                        "Road-stream crossings are the most abundant barrier type in the watershed, with 103 assessed and modelled crossings located on stream segments with modelled habitat. Demographic road crossings (highways, municipal, and paved roads) block 7.31 km of habitat (~21% of the total blocked habitat), with 73% of assessed crossings having been identified as barriers to fish passage. Resource roads block 19.57 km of habitat (~56%), with 60% of assessed crossings having been identified as barriers. The planning team felt that the data was underestimating the severity of road-stream crossing barriers in the watershed, and therefore decided to update the rating from High to Very High. The planning team also felt that an irreversibility rating of Medium was appropriate due to the technical complexity and resources required to remediate road-stream crossings.",
-                                        id = "mybox",
-                                        collapsible = TRUE,
-                                        closable = FALSE,
-                                        collapsed = TRUE
-                                    
-                                      ),
-                                      box(
-                                        title = "Trail-stream crossings",
-                                        "There is very little spatial data available on trail-stream crossings in the watershed, so the planning team was unable to quantify the true Extent and Severity of this barrier type. However, the planning team felt that trail-stream crossings are not prevalent within the watershed and that, where they do exist, they do not significantly impact passage for anadromous salmon. As most crossings will be fords or similar structures, remediation may not be required, or remediation costs associated with these barriers would be quite low. Overall, the planning team felt that the pressure rating for trail-stream crossings was likely Low; however, the lack of ground-truthed evidence to support this rating was identified as a knowledge gap within this plan.",
-                                        id = "mybox",
-                                        collapsible = TRUE,
-                                        closable = FALSE,
-                                        collapsed = TRUE
-                                      ),
-                                      box(
-                                        title = "Lateral Barriers",
-                                        "There are numerous types of lateral barriers that potentially occur in the watershed, including dykes, berms, and linear development (i.e., road and rail lines), all of which can restrict the ability of anadromous salmon to move into floodplains, riparian wetlands, and other off-channel habitats. No comprehensive lateral barrier data exists within the watershed, so pressure ratings were based on qualitative local knowledge. Lateral barriers are not thought to be as prevalent as road- or rail-stream crossings but are likely very severe where they do exist. Significant lateral barriers are known to occur along the mainstem of the Horsefly River, which disconnect the mainstem river from historic floodplain and off-channel habitat. Overall, the planning team decided that a High pressure rating adequately captured the effect that lateral barriers are having on connectivity in the watershed. Work to begin quantifying and mapping lateral habitat will begin in 2022-23, as described in the Operational Plan under Strategy 2: Lateral barrier remediation. ",
-                                        id = "mybox",
-                                        collapsible = TRUE,
-                                        closable = FALSE,
-                                        collapsed = TRUE
-                                      ),
-                                      box(
-                                        title = "Natural Barriers",
-                                        "Natural barriers to fish passage can include debris flows, log jams, sediment deposits, etc., but natural features that have always restricted fish passage (e.g., waterfalls) are not considered under this barrier type. Natural barriers are difficult to include in a spatial prioritization framework due to their transient nature. The planning team identified known natural barriers that occur throughout the watershed, such as beaver dams and log jams. Generally, these natural barriers are only severe impediments to fish passage during low-flow years, but reduced baseflows have become more common in recent years. Based on this, the planning team felt that natural barriers will be severe most years where they exist, but are mostly reversible, resulting in an overall pressure rating of Low.",
-                                        id = "mybox",
-                                        collapsible = TRUE,
-                                        closable = FALSE,
-                                        collapsed = TRUE
-                                      )
+
                                      
                                     )),
-                                    h1(paste0("Assessments done : ", toString(assessed))),
-                                    h1(paste0("# of barriers with Habitat Confirmations : ", toString(hab_conf))),
-                                    h1(paste0("Total km blocked : ", toString(gain), "km")),
-                                    h1(paste0("# of crossings on accessible streams: ", length(df$aggregated_crossings_id))),
-                                    plotOutput("attr_pie"),
-                                    div(tags$img(src = "www/salmon.png", alt = "something went wrong", deleteFile = FALSE), style = "text_align: center;")
-
-                                  
-                         )
-             )
     ),
-
+    
     tabPanel("Interactive Map", 
              tabsetPanel(id = "alltab",
                          tabPanel("", value = "Tab_1", 
@@ -233,26 +276,70 @@ ui <- fluidPage(
                                   ),
                                   tags$hr(style="border-color: white;"),
                                   fluidRow(id = "row2",
-                                           column(7,
+                                           column(width=7,
                                                   leafletOutput("mymap")
                                            ),
-                                           column(5,
+                                           column(width=5,
                                                   dataTableOutput("mytable")
                                            ),
                                   )
                           )
              )
     ),
-    tabPanel("Prioritization process",
-            #  tabsetPanel(id = "intermediatetab",
-            #              tabPanel(value = "Tab_3", 
-            #                       #add content to tab panel
-            #                       # selectInput("priority", "Barrier List:", c("All" = "All", "Priority" = "Priority", "Intermediate" = "Intermediate"), selected = "Intermediate"),
-            #                       # selectInput("variable", "Barrier Status:", c("Passable" = "PASSABLE", "Barrier" = "BARRIER","Potential"="POTENTIAL","Unknown"="UNKNOWN"), selected = c("PASSABLE", "BARRIER","POTENTIAL","UNKNOWN"), multiple = TRUE),
-            #              )
-            #  )
+    
+    tabPanel("Additional Information",
+              tabsetPanel(id = "alltab",
+                          tabPanel("", value = "Tab_3", 
+                                   #add content to tab panel
+                                   fluidRow(
+                                     column(width=12,
+                                            fluidRow(style="margin-left:10vw;margin-right:10vw;border-radius:4px;background-color:white;",
+                                                     div(class="paras",
+                                                           h2("Background"),
+                                                           hr(),
+                                                           p("Healthy, well-connected streams and rivers within the Horsefly River watershed support thriving populations of migratory fish, improving the overall ecosystem health of the watershed. In turn, these fish provide the continued sustenance, cultural, and ceremonial needs of the Northern Secwépemc people, as they have since time immemorial. Both residents and visitors to the watershed work together to mitigate the negative effects of anthropogenic aquatic barriers, improving the resiliency of streams and rivers for the benefit and appreciation of all.", style="text-align:center;font-style:italic"),
+                                                           br(),
+                                                           p("The Canadian Wildlife Federation and partners have developed a Watershed Connectivity Remediation Plan (WCRP) for the Horsefly River watershed (Secwepemcúl’ecw). The overall aim of the WCRP is to improve connectivity for anadromous salmon and the livelihoods that they support, including the continued sustenance, cultural, and ceremonial needs of the Northern Secwépemc people. This 20-year plan was developed to identify priority actions that the Horsefly River WCRP planning team (see Table 1 for a list of team members) will undertake between 2021-2040 to conserve and restore fish passage in the watershed, through crossing remediation, lateral barrier remediation, dam remediation, and barrier prevention strategies. The full WCRP can be viewed", a(href="https://horsefly-wcrp.netlify.app/intro.html", " here.")),
+                                                           p("This dashboard provides an easy tool for project partners and other interested parties to easily access and explore the watershed connectivity status, project progress, and explore the barriers in the watershed (including the intermediate and priority barrier lists)."),
+                                                           h2("Barrier Prioritization"),
+                                                           hr(),
+                                                           div(class="barrprior", img(src="barrier_prioritization.png", style="width:80%;")),
+                                                           br(),
+                                                           p("The barrier prioritization process comprises three stages:",
+                                                             tags$div(
+                                                               tags$ul(
+                                                                 tags$li("Stage 1: preliminary barrier list"),
+                                                                 tags$li("Stage 2: intermediate barrier list"),
+                                                                 tags$li("Stage 3: priority barrier list")
+                                                             ))),
+                                                           p("Initially, the barrier prioritization analysis ranked all barriers in the watershed by the amount of habitat blocked to produce a \"preliminary barrier list\", which also accounted for assessing \"sets\" of barriers for which remediation could be coordinated to maximize connectivity gains. From this list, the top-ranking subset of barriers - comprising more barriers than are needed to achieve the goals - is selected to produce an \"intermediate barrier list\". Barriers that did not rank highly in the model results but were identified as priority barriers by the local partners were also added to the intermediate barrier list. A longer list of barriers is needed due to the inherent assumptions and uncertainty in the connectivity and habitat models and gaps in available data. Barriers that have been modelled (i.e., points where streams and road/rail networks intersect) are assumed to be barriers until field verification is undertaken and structures that have been assessed as \"potential\" barriers (e.g., may be passable at certain flow levels or for certain life history stages) require further investigation before a definitive remediation decision is made. Additionally, the habitat model identifies stream segments that have the potential to support spawning or rearing habitat for target species but does not attempt to quantify habitat quality or suitability, which will require additional field verification once barrier assessments have completed. As such, the intermediate barrier list should be considered as a starting point in the prioritization process and represents structures that are a priority to evaluate further through barrier assessment and habitat confirmations because some structures will likely be passable, others will not be associated with usable habitat, and others may not be feasible to remediate because of logistic considerations."),
+                                                           p("The intermediate barrier list was updated following the barrier assessments and habitat confirmations that were undertaken during the 2021 field season - some barriers were moved forward to the \"priority barrier list\" and others were eliminated from consideration due to one or more of the considerations discussed in Table . The priority barrier list represents structures that were confirmed to be partial or full barriers to fish passage and that block access to confirmed habitat. Barriers on the priority list were reviewed by planning team members and selected for inclusion for proactive pursual of remediation.  For more details on the habitat, connectivity, and barrier prioritization models, please see ", a("Appendix A", href="https://horsefly-wcrp.netlify.app/appendixa"), " and ", a("Appendix B", href="https://horsefly-wcrp.netlify.app/appendixb"), " of the WCRP."),
+                                                           h2("Data Dictionary"),
+                                                           hr(),
+                                                           #tableOutput(<TOMAS TO ADD>)
+                                   ))))
+                          )
+              )
 
       ),
+    
+    tabPanel("Acknowledgements",
+               tabsetPanel(id = "alltab",
+                           tabPanel("", value = "Tab_4", 
+                                    #add content to tab panel
+                                    fluidRow(
+                                      column(width=12, style="padding-right:15px;padding-left:15px;",
+                                        p("This dashboard summarizes the culmination of a collaborative planning process undertaken in the Horsefly River watershed over many months of work with a multi-partner planning team of individuals and groups passionate about the conservation and restoration of freshwater ecosystems and the species they support. Plan development was funded by the BC Salmon Restoration and Innovation Fund, Canada Nature Fund for Aquatic Species at Risk, and the RBC Bluewater Project. We were fortunate to benefit from the feedback, guidance, and wisdom of many groups and individuals who volunteered their time throughout this process — this publication would not have been possible without the engagement of our partners and the planning team."),
+                                        p("We recognize the incredible fish passage and connectivity work that has occurred in the Horsefly River watershed to date, and we are excited to continue partnering with local groups and organizations to build upon existing initiatives and provide a road map to push connectivity remediation forward over the next 20 years and beyond."),
+                                        p("The Canadian Wildlife Federation recognizes that the lands and waters that form the basis of this project are the traditional unceded territory of the Northern Secwepemc people. We are grateful for the opportunity to learn from the stewards of this land and work together to benefit Pacific Salmon. A special thank you to Nishitha Singi for sharing the traditional Secwepemctsín names used in this plan."),
+                                        tableOutput("tableawk")
+                                    ))
+
+                           )
+               )
+             
+    ),
+    
     #create element to display an image on right side of navbar
     tags$script(HTML("var header = $('.navbar > .container-fluid');
     header.append('<div><a href=\"\"><img src=\"https://cwf-fcf.org/assets/wrapper-reusables/images/logo/white-cwf-logo-en.svg\" style=\"float:right;width:200px;height:40px;padding-top:10px;padding-right:5px;\"></a></div>');
@@ -261,58 +348,6 @@ ui <- fluidPage(
 
 )
 
-# fluidRow(
-#                                     column(
-#                                       width = 6,
-#                                       uiOutput("active_side"), 
-#                                       actionButton("toggle", "Toggle flip box"),
-#                                       flipBox(
-#                                         id = "myflipbox", 
-#                                         trigger = "hover",
-#                                         width = 12,
-#                                         front = div(
-#                                           class = "text-center",
-#                                           h1("Flip on hover"),
-#                                           img(
-#                                             src = "https://image.flaticon.com/icons/svg/149/149076.svg",
-#                                             height = "300px",
-#                                             width = "100%"
-#                                           )
-#                                         ),
-#                                         back = div(
-#                                           class = "text-center",
-#                                           height = "300px",
-#                                           width = "100%",
-#                                           h1("Flip on hover"),
-#                                           p("More information....")
-#                                         )
-#                                       )
-#                                     ),
-#                                     column(
-#                                       width = 6,
-#                                       uiOutput("active_side_2"),
-#                                       flipBox(
-#                                         id = "myflipbox2",
-#                                         width = 12,
-#                                         front = div(
-#                                           class = "text-center",
-#                                           h1("Flip on click"),
-#                                           img(
-#                                             src = "https://image.flaticon.com/icons/svg/149/149076.svg",
-#                                             height = "300px",
-#                                             width = "100%"
-#                                           )
-#                                         ),
-#                                         back = div(
-#                                           class = "text-center",
-#                                           height = "300px",
-#                                           width = "100%",
-#                                           h1("Flip on click"),
-#                                           p("More information....")
-#                                         )
-#                                       )
-#                                     )
-#                                   )
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #popup formatting
@@ -677,7 +712,7 @@ server <- function(input, output, session) {
 
     })
   
-  #Tab panel #2---------------------------------------------------------------------
+  # Stats Tab panel ---------------------------------------------------------------------
   output$attr_bar <- renderPlot(width = "auto",
   height = "auto",
   res = 150,
@@ -710,9 +745,10 @@ server <- function(input, output, session) {
   }
   )
 
-  #pie chart attempt
+  #pie chart
   output$attr_pie <- renderPlot(width = "auto",
   height = "auto",
+  bg="transparent",
   res = 150,
   {
     if (input$options == "barr"){
@@ -722,12 +758,13 @@ server <- function(input, output, session) {
             mutate(Freq = n/sum(n))
 
       ggplot(df1, aes(x="", y=Perc, fill = barrier_status)) +
-      geom_bar(stat="identity", width=1, color="white") +
+      geom_bar(stat="identity", width=1, color="#f5f5f5") +
       coord_polar("y", start=0) +
-      geom_text(aes(label=scales::percent(Freq)), position = position_stack(vjust = .5)) +
-      labs(title = "Attribute Summary for HORS", x = "Barrier Status", y = "Proportion %", fill="Barrier Status") +
+      geom_text(aes(x = 1.6, label=paste(barrier_status, scales::percent(Freq))), color = "black", size = 2, position = position_stack(vjust = .5), check_overlap = TRUE) +
+      labs(x = "Barrier Status", y = "Proportion %", fill="Barrier Status") +
       scale_fill_manual(values=c("#d52a2a", "#32cd32", "#ffb400", "#965ab3")) +
-      theme_void() # remove background, grid, numeric labels
+      theme_void() + # remove background, grid, numeric labels 
+      theme(legend.position="none") 
     }
     else if (input$options == "type"){
       df1 <- df %>%
@@ -770,13 +807,22 @@ server <- function(input, output, session) {
   observeEvent(input$refresh, {
       updateProgressBar(session = session, id = "connect", value = watershed_connectivity("ALL"))
     })
-
-
+  
+  #Rendering Acknowledgements Table
+  output$tableawk <- renderDataTable({
+    
+    df <- read.csv("acknowledgements.csv",
+                   header = input$header,
+                   sep = input$sep,
+                   quote = input$quote)
+    return(df)
+    
+  })
 }
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 # finally, we need to call the shinyapp function with the ui and server as arguments
-app <- shinyApp(ui, server)
+shinyApp(ui, server)
 
 
 #run app locally
-runApp(app)
+#runApp(app)
