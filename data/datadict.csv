@@ -1,0 +1,19 @@
+﻿Attribute,Definition
+Crossing Source,"Data source for the specific crossing. For example, modelled crossing signifies that the crossing was modelled by the bcfishpass model."
+Feature Type,The potential crossing feature types associated with each crossing type.
+PSCIS Status,Status given by the Provincial Stream Crossing Inventory System (PSCIS) for British Columbia.
+Crossing Type Code,
+Crossing Subtype Code,
+PSCIS Road Name:,Road name closest to the crossing during the PSCIS assessment of said crossing.
+PSCIS Stream Name:,Stream name on which the specific crossing rests according to a PSCIS assessment. This attribute will only exist if there was an assessmnet performed by PSCIS.
+PSCIS Assessment Comment:,Comment left by the PSCIS assessment team for specific crossing.
+PSCIS Assessment Date:,Date at which the PSCIS assessment took place.
+Dam Name:,Name of the crossing.
+Dam Owner:,Owner of the crossing.
+GNIS Stream Name:,Stream on which the crossing rests according to the Geographic Names Information System.
+Stream Order:,
+Anthropogenic Barriers:,
+Count of Anthropogenic Barriers:,
+All Habitat Blocked:,"All modelled habitat blocked by the crossing, both upstream and downstream."
+Upstream Habitat Blocked:,All modelled habitat blocked upstream of the crossing by the crossing.
+geoJSON,Raw geoJSON data associated with specific crossing. Data compiled by Hilcrest Geographics

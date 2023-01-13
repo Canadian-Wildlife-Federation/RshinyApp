@@ -64,8 +64,14 @@
 /*-----------------------*/
 
 /*Table header colours*/
-tr {
+th {
     background-color: #28484e;
+    color: white;
+    text-align: center;
+}
+
+tr {
+    background-color: #f0eded;
 }
 
 table.dataTable thead th, table.dataTable tfoot th {
@@ -267,6 +273,7 @@ table.dataTable thead > tr > th.sorting::before, table.dataTable thead > tr > th
 /*Popup table background colour*/
 .popup {
     background-color:rgb(241, 241, 241);
+    color: black;
 }
 
 /*---------------------*/

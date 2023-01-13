@@ -13,13 +13,14 @@ library(leaflet.mapboxgl)
 library(htmltools)
 library(leafpop)
 library(osmextract)
-library(mapboxapi)
+#library(mapboxapi)
 library(ggplot2)
 library(shinydashboard)
 library(shinydashboardPlus)
 library(shinyWidgets)
 library(png)
 library(shinyBS)
+library(shinyjs)
 
 
 
@@ -30,7 +31,8 @@ library(shinyBS)
 crossings_res <- read_sf("https://features.hillcrestgeo.ca/bcfishpass/collections/bcfishpass.crossings/items.json?filter=watershed_group_code%20=%20%27HORS%27%20AND%20all_spawningrearing_km%3e0")
 df <- crossings_res %>%
       dplyr::mutate(long = sf::st_coordinates(crossings_res)[, 1],
-                    lat = sf::st_coordinates(crossings_res)[, 2])
+                    lat = sf::st_coordinates(crossings_res)[, 2]) %>%
+      dplyr::mutate(link = paste("https://features.hillcrestgeo.ca/bcfishpass/collections/bcfishpass.crossings/items.json?filter=watershed_group_code%20=%20%27HORS%27%20AND%20all_spawningrearing_km%3E0%20AND%20aggregated_crossings_id%20=%20",id,sep = ""))
 
 boundary <- read_sf("https://features.hillcrestgeo.ca/fwa/collections/whse_basemapping.fwa_watershed_groups_poly/items.json?watershed_group_code=HORS")
 
@@ -81,6 +83,11 @@ priority <- read.csv("data/priority_barriers.csv")
 priority$aggregated_crossings_id <- as.character(priority$aggregated_crossings_id)
 intermediate <- read.csv("data/inter_barriers.csv")
 
+#misc. tables
+acknow <- read.csv("data/acknowledgements.csv")
+datadict <- read.csv("data/datadict.csv")
+priordict <- read.csv("data/priority_dict.csv")
+
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #marker color functions and stream labels
@@ -101,6 +108,7 @@ ui <- fluidPage(
   includeCSS("www/simple_app_styling.css"),
   #include JS function
   includeScript("gomap.js"),
+  useShinyjs(),
   #create top navbar
   navbarPage("WCRP Dashboard", #position = "fixed-top",
     #create tabs in nav bar
@@ -133,53 +141,20 @@ ui <- fluidPage(
                                                   
                                                     fluidRow(
                                                       box(width = 12, title = "Summary of Passability",
-                                                        #barrier types
                                                         fluidRow(
+                                                          selectInput("options", "Crossing Feature Type", c("Small Dams (<3 m height)" = "dam", "Road-stream Crossings" = "road", "Trail-stream crossings" = "trail", "Lateral Barriers" = "lateral", "Natural Barriers" = "natural")),
+                                                          uiOutput("threat")
+                                                        ),
+                                                        #barrier types
+                                                        fluidRow(class = "rowhide",
                                                           plotOutput("attr_pie")
                                                         ),
                                                         fluidRow(
                                                           #h3("Barrier Types"),
                                                           br(),
-                                                          box(
-                                                            title = "Small Dams (<3 m height)",
-                                                            p("There are nine mapped small dams on “potentially accessible” stream segments in the watershed, blocking a total of 8.09 km (~23% of the total blocked habitat) of modelled spawning and rearing habitat for anadromous salmon, resulting in a Medium extent. The extent rating of these structures was confirmed by the planning team."), p("There are two known fish-passage structures in the watershed, including on the dam at the outlet of McKinley Lake. The remaining dams likely block passage for anadromous salmon and would require significant resources to remediate. However, due to the limited extent of dams in the watershed, a final pressure rating of Medium was assigned."), p("Four small dams were identified on the priority barrier list. Three of the dams require further assessment and confirmation of upstream habitat quality, and the dam observed at the outlet of Kwun Lake does not exist."),
-                                                            id = "expanders",
-                                                            collapsible = TRUE,
-                                                            closable = FALSE,
-                                                            collapsed = TRUE
-                                                          ),
-                                                          box(
-                                                            title = "Road-stream Crossings",
-                                                            "Road-stream crossings are the most abundant barrier type in the watershed, with 103 assessed and modelled crossings located on stream segments with modelled habitat. Demographic road crossings (highways, municipal, and paved roads) block 7.31 km of habitat (~21% of the total blocked habitat), with 73% of assessed crossings having been identified as barriers to fish passage. Resource roads block 19.57 km of habitat (~56%), with 60% of assessed crossings having been identified as barriers. The planning team felt that the data was underestimating the severity of road-stream crossing barriers in the watershed, and therefore decided to update the rating from High to Very High. The planning team also felt that an irreversibility rating of Medium was appropriate due to the technical complexity and resources required to remediate road-stream crossings.",
-                                                            id = "expanders",
-                                                            collapsible = TRUE,
-                                                            closable = FALSE,
-                                                            collapsed = TRUE
-                                                          ),
-                                                          box(
-                                                            title = "Trail-stream crossings",
-                                                            "There is very little spatial data available on trail-stream crossings in the watershed, so the planning team was unable to quantify the true Extent and Severity of this barrier type. However, the planning team felt that trail-stream crossings are not prevalent within the watershed and that, where they do exist, they do not significantly impact passage for anadromous salmon. As most crossings will be fords or similar structures, remediation may not be required, or remediation costs associated with these barriers would be quite low. Overall, the planning team felt that the pressure rating for trail-stream crossings was likely Low; however, the lack of ground-truthed evidence to support this rating was identified as a knowledge gap within this plan.",
-                                                            id = "expanders",
-                                                            collapsible = TRUE,
-                                                            closable = FALSE,
-                                                            collapsed = TRUE
-                                                          ),
-                                                          box(
-                                                            title = "Lateral Barriers",
-                                                            "There are numerous types of lateral barriers that potentially occur in the watershed, including dykes, berms, and linear development (i.e., road and rail lines), all of which can restrict the ability of anadromous salmon to move into floodplains, riparian wetlands, and other off-channel habitats. No comprehensive lateral barrier data exists within the watershed, so pressure ratings were based on qualitative local knowledge. Lateral barriers are not thought to be as prevalent as road- or rail-stream crossings but are likely very severe where they do exist. Significant lateral barriers are known to occur along the mainstem of the Horsefly River, which disconnect the mainstem river from historic floodplain and off-channel habitat. Overall, the planning team decided that a High pressure rating adequately captured the effect that lateral barriers are having on connectivity in the watershed. Work to begin quantifying and mapping lateral habitat will begin in 2022-23, as described in the Operational Plan under Strategy 2: Lateral barrier remediation. ",
-                                                            id = "expanders",
-                                                            collapsible = TRUE,
-                                                            closable = FALSE,
-                                                            collapsed = TRUE
-                                                          ),
-                                                          box(
-                                                            title = "Natural Barriers",
-                                                            "Natural barriers to fish passage can include debris flows, log jams, sediment deposits, etc., but natural features that have always restricted fish passage (e.g., waterfalls) are not considered under this barrier type. Natural barriers are difficult to include in a spatial prioritization framework due to their transient nature. The planning team identified known natural barriers that occur throughout the watershed, such as beaver dams and log jams. Generally, these natural barriers are only severe impediments to fish passage during low-flow years, but reduced baseflows have become more common in recent years. Based on this, the planning team felt that natural barriers will be severe most years where they exist, but are mostly reversible, resulting in an overall pressure rating of Low.",
-                                                            id = "expanders",
-                                                            collapsible = TRUE,
-                                                            closable = FALSE,
-                                                            collapsed = TRUE
-                                                          ))))
+                                                          uiOutput("box")                 
+                                                        ))
+                                                    )
                                                     ),
                                              column(width=7,
                                                     fluidRow(
@@ -254,10 +229,9 @@ ui <- fluidPage(
                                   
                                   
                                   #------------------------
-                                  fluidRow(
-                                    selectInput("options", "Attribute", c("Barrier Status" = "barr", "Feature Type" = "type")),
-                                    plotOutput("attr_bar")
-                                  ),
+                                  # fluidRow(
+                                  #   plotOutput("attr_bar")
+                                  # ),
                                     #barriers boxes
 
                                      
@@ -316,7 +290,10 @@ ui <- fluidPage(
                                                            p("The intermediate barrier list was updated following the barrier assessments and habitat confirmations that were undertaken during the 2021 field season - some barriers were moved forward to the \"priority barrier list\" and others were eliminated from consideration due to one or more of the considerations discussed in Table . The priority barrier list represents structures that were confirmed to be partial or full barriers to fish passage and that block access to confirmed habitat. Barriers on the priority list were reviewed by planning team members and selected for inclusion for proactive pursual of remediation.  For more details on the habitat, connectivity, and barrier prioritization models, please see ", a("Appendix A", href="https://horsefly-wcrp.netlify.app/appendixa"), " and ", a("Appendix B", href="https://horsefly-wcrp.netlify.app/appendixb"), " of the WCRP."),
                                                            h2("Data Dictionary"),
                                                            hr(),
-                                                           #tableOutput(<TOMAS TO ADD>)
+                                                           tableOutput("dict"),
+                                                           h2("Priority Data Dictionary"),
+                                                           hr(),
+                                                           tableOutput("pdict")
                                    ))))
                           )
               )
@@ -356,76 +333,80 @@ df$label <- paste0("<table style=\"border: 1px solid rgb(241, 241, 241)\">
                         <h4>ID: ", df$id, "</h4>
                         <br>
                         <tr class=\"popup\">
-                          <th>Crossing Source:  </th>
-                          <th>", df$crossing_source, "</th>
+                          <th class=\"popup\">Crossing Source:  </th>
+                          <th class=\"popup\">", df$crossing_source, "</th>
                         <tr>
                         <tr class=\"popup\">
-                          <th>Feature Type:  </th>
-                          <th>", df$crossing_feature_type, "</th>
+                          <th class=\"popup\">Feature Type:  </th>
+                          <th class=\"popup\">", df$crossing_feature_type, "</th>
                         <tr>
                         <tr class=\"popup\">
-                          <th>PSCIS Status:  </th>
-                          <th>", df$pscis_status, "</th>
+                          <th class=\"popup\">PSCIS Status:  </th>
+                          <th class=\"popup\">", df$pscis_status, "</th>
                         <tr>
                         <tr class=\"popup\">
-                          <th>Crossing Type Code:  </th>
-                          <th>", df$crossing_type_code, "</th>
+                          <th class=\"popup\">Crossing Type Code:  </th>
+                          <th class=\"popup\">", df$crossing_type_code, "</th>
                         <tr>
                         <tr class=\"popup\">
-                          <th>Crossing Subtype Code:  </th>
-                          <th>", df$crossing_subtype_code, "</th>
+                          <th class=\"popup\">Crossing Subtype Code:  </th>
+                          <th class=\"popup\">", df$crossing_subtype_code, "</th>
                         <tr>
                         <tr class=\"popup\">
-                          <th>Barrier Status:  </th>
-                          <th>", df$barrier_status, "</th>
+                          <th class=\"popup\">Barrier Status:  </th>
+                          <th class=\"popup\">", df$barrier_status, "</th>
                         <tr>
                         <tr class=\"popup\">
-                          <th>PSCIS Road Name:  </th>
-                          <th>", df$pscis_road_name, "</th>
+                          <th class=\"popup\">PSCIS Road Name:  </th>
+                          <th class=\"popup\">", df$pscis_road_name, "</th>
                         <tr>
                         <tr class=\"popup\">
-                          <th>PSCIS Stream Name:  </th>
-                          <th>", df$pscis_stream_name, "</th>
+                          <th class=\"popup\">PSCIS Stream Name:  </th>
+                          <th class=\"popup\">", df$pscis_stream_name, "</th>
                         <tr>
                         <tr class=\"popup\">
-                          <th>PSCIS Assessment Comment:  </th>
-                          <th>", df$pscis_assessment_comment, "</th>
+                          <th class=\"popup\">PSCIS Assessment Comment:  </th>
+                          <th class=\"popup\">", df$pscis_assessment_comment, "</th>
                         <tr>
                         <tr class=\"popup\">
-                          <th>PSCIS Assessment Date:  </th>
-                          <th>", df$pscis_assessment_date, "</th>
+                          <th class=\"popup\">PSCIS Assessment Date:  </th>
+                          <th class=\"popup\">", df$pscis_assessment_date, "</th>
                         <tr>
                         <tr class=\"popup\">
-                          <th>Dam Name:  </th>
-                          <th>", df$dam_name, "</th>
+                          <th class=\"popup\">Dam Name:  </th>
+                          <th class=\"popup\">", df$dam_name, "</th>
                         <tr>
                         <tr class=\"popup\">
-                          <th>Dam Owner:  </th>
-                          <th>", df$dam_owner, "</th>
+                          <th class=\"popup\">Dam Owner:  </th>
+                          <th class=\"popup\">", df$dam_owner, "</th>
                         <tr>
                         <tr class=\"popup\">
-                          <th>GNIS Stream Name:  </th>
-                          <th>", df$gnis_stream_name, "</th>
+                          <th class=\"popup\">GNIS Stream Name:  </th>
+                          <th class=\"popup\">", df$gnis_stream_name, "</th>
                         <tr>
                         <tr class=\"popup\">
-                          <th>Stream Order:  </th>
-                          <th>", df$stream_order, "</th>
+                          <th class=\"popup\">Stream Order:  </th>
+                          <th class=\"popup\">", df$stream_order, "</th>
                         <tr>
                         <tr class=\"popup\">
-                          <th>Anthropogenic Barriers:  </th>
-                          <th>", df$barriers_anthropogenic_dnstr, "</th>
+                          <th class=\"popup\">Anthropogenic Barriers:  </th>
+                          <th class=\"popup\">", df$barriers_anthropogenic_dnstr, "</th>
                         <tr>
                         <tr class=\"popup\">
-                          <th>Count of Anthropogenic Barriers:  </th>
-                          <th>", df$barriers_anthropogenic_dnstr_count, "</th>
+                          <th class=\"popup\">Count of Anthropogenic Barriers:  </th>
+                          <th class=\"popup\">", df$barriers_anthropogenic_dnstr_count, "</th>
                         <tr>
                         <tr class=\"popup\">
-                          <th>All Habitat Blocked:  </th>
-                          <th>", df$all_spawningrearing_km, "</th>
+                          <th class=\"popup\">All Habitat Blocked:  </th>
+                          <th class=\"popup\">", df$all_spawningrearing_km, "</th>
                         <tr>
                         <tr class=\"popup\">
-                          <th>Upstream Habitat Blocked:  </th>
-                          <th>", df$all_spawningrearing_belowupstrbarriers_km, "</th>
+                          <th class=\"popup\">Upstream Habitat Blocked:  </th>
+                          <th class=\"popup\">", df$all_spawningrearing_belowupstrbarriers_km, "</th>
+                        <tr>
+                        <tr class=\"popup\">
+                          <th class=\"popup\">geoJSON  </th>
+                          <th class=\"popup\"><a href =",  df$link, " target='_blank'>Data Sheet</a></th>
                         <tr>
                       </table>")
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -468,36 +449,36 @@ server <- function(input, output, session) {
                         <h4>ID: ", df$aggregated_crossings_id, "</h4>
                         <br>
                         <tr class=\"popup\">
-                          <th>Stream Name:  </th>
-                          <th>", df$stream_name, "</th>
+                          <th class=\"popup\">Stream Name:  </th>
+                          <th class=\"popup\">", df$stream_name, "</th>
                         <tr>
                         <tr class=\"popup\">
-                          <th>Feature Type:  </th>
-                          <th>", df$barrier_type, "</th>
+                          <th class=\"popup\">Feature Type:  </th>
+                          <th class=\"popup\">", df$barrier_type, "</th>
                         <tr>
                         <tr class=\"popup\">
-                          <th>Priority:  </th>
-                          <th>", df$priority, "</th>
+                          <th class=\"popup\">Priority:  </th>
+                          <th class=\"popup\">", df$priority, "</th>
                         <tr>
                         <tr class=\"popup\">
-                          <th>Owner:  </th>
-                          <th>", df$owner, "</th>
+                          <th class=\"popup\">Owner:  </th>
+                          <th class=\"popup\">", df$owner, "</th>
                         <tr>
                         <tr class=\"popup\">
-                          <th>Habitat Quality (Upstream):  </th>
-                          <th>", df$upstr_hab_quality, "</th>
+                          <th class=\"popup\">Habitat Quality (Upstream):  </th>
+                          <th class=\"popup\">", df$upstr_hab_quality, "</th>
                         <tr>
                         <tr class=\"popup\">
-                          <th>Road Name:  </th>
-                          <th>", df$next_steps, "</th>
+                          <th class=\"popup\">Road Name:  </th>
+                          <th class=\"popup\">", df$next_steps, "</th>
                         <tr>
                         <tr class=\"popup\">
-                          <th>Reason:  </th>
-                          <th>", df$reason, "</th>
+                          <th class=\"popup\">Reason:  </th>
+                          <th class=\"popup\">", df$reason, "</th>
                         <tr>
                         <tr class=\"popup\">
-                          <th>Notes:  </th>
-                          <th>", df$notes, "</th>
+                          <th class=\"popup\">Notes:  </th>
+                          <th class=\"popup\">", df$notes, "</th>
                         <tr>
                       </table>"))
     } else if (priority_div() == "Intermediate") {
@@ -703,7 +684,7 @@ server <- function(input, output, session) {
 
     action <- DT::dataTableAjax(session, dt, outputId = "mytable")
 
-    datatable(dt, options = list(scrollY = 'calc(100vh - 350px)', ajax = list(url = action)),
+    datatable(dt, options = list(scrollY = 'calc(100vh - 350px)', ajax = list(url = action), columnDefs = list(list(visible=FALSE, targets=c(5,6)))),
       colnames = c("ID", "Stream Name", "Barrier Status", "Potenital Crossing Type", "Latitude", "Longitude", "Location"),
       escape = FALSE,
       selection = "none",
@@ -713,37 +694,37 @@ server <- function(input, output, session) {
     })
   
   # Stats Tab panel ---------------------------------------------------------------------
-  output$attr_bar <- renderPlot(width = "auto",
-  height = "auto",
-  res = 150,
-  {
-    if (input$options == "barr"){
-      df1 <- df %>%
-            count(barrier_status) %>%
-            mutate(Perc = (n/sum(n)) * 100) %>%
-            mutate(Freq = n/sum(n))
+  # output$attr_bar <- renderPlot(width = "auto",
+  # height = "auto",
+  # res = 150,
+  # {
+  #   if (input$options == "barr"){
+  #     df1 <- df %>%
+  #           count(barrier_status) %>%
+  #           mutate(Perc = (n/sum(n)) * 100) %>%
+  #           mutate(Freq = n/sum(n))
 
-      ggplot(df1, aes(x=barrier_status, y=Perc, fill=barrier_status)) +
-      geom_bar(stat="identity") + 
-      geom_text(aes(label=scales::percent(Freq)), position = position_stack(vjust = .5)) +
-      labs(title = "Attribute Summary for HORS", x = "Barrier Status", y = "Proportion %", fill="Barrier Status") +
-      scale_fill_manual(values=c("#d52a2a", "#32cd32", "#ffb400", "#965ab3")) +
-      theme(plot.title = element_text(hjust = 0.5))
-    }
-    else if (input$options == "type"){
-      df1 <- df %>%
-            count(crossing_feature_type) %>%
-            mutate(Perc = (n/sum(n)) * 100) %>%
-            mutate(Freq = n/sum(n))
+  #     ggplot(df1, aes(x=barrier_status, y=Perc, fill=barrier_status)) +
+  #     geom_bar(stat="identity") + 
+  #     geom_text(aes(label=scales::percent(Freq)), position = position_stack(vjust = .5)) +
+  #     labs(title = "Attribute Summary for HORS", x = "Barrier Status", y = "Proportion %", fill="Barrier Status") +
+  #     scale_fill_manual(values=c("#d52a2a", "#32cd32", "#ffb400", "#965ab3")) +
+  #     theme(plot.title = element_text(hjust = 0.5))
+  #   }
+  #   else if (input$options == "type"){
+  #     df1 <- df %>%
+  #           count(crossing_feature_type) %>%
+  #           mutate(Perc = (n/sum(n)) * 100) %>%
+  #           mutate(Freq = n/sum(n))
 
-      ggplot(df1, aes(x=crossing_feature_type, y=Perc, fill=crossing_feature_type)) +
-      geom_bar(stat="identity") + 
-      geom_text(aes(label=scales::percent(Freq)), position = position_stack(vjust = .5)) +
-      labs(title = "Attribute Summary for HORS", x = "Feature Type", y = "Proportion %", fill="Crossing Feature Type") + 
-      theme(plot.title = element_text(hjust = 0.5))
-    }
-  }
-  )
+  #     ggplot(df1, aes(x=crossing_feature_type, y=Perc, fill=crossing_feature_type)) +
+  #     geom_bar(stat="identity") + 
+  #     geom_text(aes(label=scales::percent(Freq)), position = position_stack(vjust = .5)) +
+  #     labs(title = "Attribute Summary for HORS", x = "Feature Type", y = "Proportion %", fill="Crossing Feature Type") + 
+  #     theme(plot.title = element_text(hjust = 0.5))
+  #   }
+  # }
+  # )
 
   #pie chart
   output$attr_pie <- renderPlot(width = "auto",
@@ -751,8 +732,9 @@ server <- function(input, output, session) {
   bg="transparent",
   res = 150,
   {
-    if (input$options == "barr"){
+    if (input$options == "dam"){
       df1 <- df %>%
+            filter(crossing_feature_type == "DAM") %>%
             count(barrier_status) %>%
             mutate(Perc = (n/sum(n)) * 100) %>%
             mutate(Freq = n/sum(n))
@@ -766,18 +748,21 @@ server <- function(input, output, session) {
       theme_void() + # remove background, grid, numeric labels 
       theme(legend.position="none") 
     }
-    else if (input$options == "type"){
+    else if (input$options == "road"){
       df1 <- df %>%
-            count(crossing_feature_type) %>%
+            filter(crossing_feature_type == "ROAD, RESOURCE/OTHER" | crossing_feature_type == "ROAD, DEMOGRAPHIC") %>%
+            count(barrier_status) %>%
             mutate(Perc = (n/sum(n)) * 100) %>%
             mutate(Freq = n/sum(n))
 
-      ggplot(df1, aes(x="", y=Perc, fill=crossing_feature_type)) +
-      geom_bar(stat="identity", width=1, color="white") +
+      ggplot(df1, aes(x="", y=Perc, fill = barrier_status)) +
+      geom_bar(stat="identity", width=1, color="#f5f5f5") +
       coord_polar("y", start=0) +
-      geom_text(aes(label=scales::percent(Freq)), position = position_stack(vjust = .5)) +
-      labs(title = "Attribute Summary for HORS", x = "Feature Type", y = "Proportion %", fill="Crossing Feature Type") + 
-      theme_void() # remove background, grid, numeric labels
+      geom_text(aes(x = 1.6, label=paste(barrier_status, scales::percent(Freq))), color = "black", size = 2, position = position_stack(vjust = .5), check_overlap = TRUE) +
+      labs(x = "Barrier Status", y = "Proportion %", fill="Barrier Status") +
+      scale_fill_manual(values=c("#d52a2a", "#32cd32", "#ffb400", "#965ab3")) +
+      theme_void() + # remove background, grid, numeric labels 
+      theme(legend.position="none") 
     }
   }
   )
@@ -795,34 +780,144 @@ server <- function(input, output, session) {
     scale_fill_manual(values = c("#d52a2a", "#32cd32"))
   })
 
-  ###New function
-  output$png <- renderPlot({
-    pic = readPNG('www/salmon.png')
-    plot.new()
-    grid::grid.raster(pic)
-
-  })
-
   #Update connectivity status
   observeEvent(input$refresh, {
       updateProgressBar(session = session, id = "connect", value = watershed_connectivity("ALL"))
     })
   
   #Rendering Acknowledgements Table
-  output$tableawk <- renderDataTable({
-    
-    df <- read.csv("acknowledgements.csv",
-                   header = input$header,
-                   sep = input$sep,
-                   quote = input$quote)
-    return(df)
-    
+  output$tableawk <- renderTable(acknow)
+
+  #rendering data dictionary
+  output$dict <- renderTable(datadict)
+  output$pdict <- renderTable(priordict)
+
+  #updating boxes given dropdown value
+
+  output$threat <- renderUI({
+    if (input$options == "dam") {
+      column(width=5, valueBox("Medium", "Overall Threat Rating", icon = icon("solid fa-circle-exclamation"), color = "green"))
+    } else if (input$options == "road") {
+      column(width=5, valueBox("very High", "Overall Threat Rating", icon = icon("solid fa-circle-exclamation"), color = "red"))
+    } else if (input$options == "trail") {
+      column(width=5, valueBox("Low", "Overall Threat Rating", icon = icon("solid fa-circle-exclamation"), color = "olive"))
+    } else if (input$options == "natural") {
+      column(width=5, valueBox("Low", "Overall Threat Rating", icon = icon("solid fa-circle-exclamation"), color = "olive"))
+    } else if (input$options == "lateral") {
+      column(width=5, valueBox("High", "Overall Threat Rating", icon = icon("solid fa-circle-exclamation"), color = "yellow"))
+    }
   })
+
+  observe({
+    if (input$options == "dam" | input$options == "road") {
+      shinyjs::show(selector = ".rowhide")
+    } else {
+      shinyjs::hide(selector = ".rowhide")
+    }
+  })
+
+  output$box <- renderUI({
+    if (input$options == "dam") {
+      box(
+          id = "expanders1",
+          "There are nine mapped small dams on “potentially accessible” stream segments in the watershed, blocking a total of 8.09 km (~23% of the total blocked habitat) of modelled spawning and rearing habitat for anadromous salmon, resulting in a Medium extent. The extent rating of these structures was confirmed by the planning team.There are two known fish-passage structures in the watershed, including on the dam at the outlet of McKinley Lake. The remaining dams likely block passage for anadromous salmon and would require significant resources to remediate. However, due to the limited extent of dams in the watershed, a final pressure rating of Medium was assigned. Four small dams were identified on the priority barrier list. Three of the dams require further assessment and confirmation of upstream habitat quality, and the dam observed at the outlet of Kwun Lake does not exist.",
+          title = "Small Dams (<3 m height)",
+          collapsible = TRUE,
+          closable = FALSE,
+          collapsed = FALSE
+          )
+    } else if (input$options == "road") {
+      box(
+          id = "expanders1",
+          "Road-stream crossings are the most abundant barrier type in the watershed, with 103 assessed and modelled crossings located on stream segments with modelled habitat. Demographic road crossings (highways, municipal, and paved roads) block 7.31 km of habitat (~21% of the total blocked habitat), with 73% of assessed crossings having been identified as barriers to fish passage. Resource roads block 19.57 km of habitat (~56%), with 60% of assessed crossings having been identified as barriers. The planning team felt that the data was underestimating the severity of road-stream crossing barriers in the watershed, and therefore decided to update the rating from High to Very High. The planning team also felt that an irreversibility rating of Medium was appropriate due to the technical complexity and resources required to remediate road-stream crossings.",               
+          title = "Road-stream Crossings",
+          collapsible = TRUE,
+          closable = FALSE,
+          collapsed = FALSE
+          )
+    } else if (input$options == "trail") {
+      box(
+          title = "Trail-stream crossings",
+          "There is very little spatial data available on trail-stream crossings in the watershed, so the planning team was unable to quantify the true Extent and Severity of this barrier type. However, the planning team felt that trail-stream crossings are not prevalent within the watershed and that, where they do exist, they do not significantly impact passage for anadromous salmon. As most crossings will be fords or similar structures, remediation may not be required, or remediation costs associated with these barriers would be quite low. Overall, the planning team felt that the pressure rating for trail-stream crossings was likely Low; however, the lack of ground-truthed evidence to support this rating was identified as a knowledge gap within this plan.",
+          id = "expanders",
+          collapsible = TRUE,
+          closable = FALSE,
+          collapsed = FALSE
+        )
+    } else if (input$options == "natural") {
+      box(
+          title = "Natural Barriers",
+          "Natural barriers to fish passage can include debris flows, log jams, sediment deposits, etc., but natural features that have always restricted fish passage (e.g., waterfalls) are not considered under this barrier type. Natural barriers are difficult to include in a spatial prioritization framework due to their transient nature. The planning team identified known natural barriers that occur throughout the watershed, such as beaver dams and log jams. Generally, these natural barriers are only severe impediments to fish passage during low-flow years, but reduced baseflows have become more common in recent years. Based on this, the planning team felt that natural barriers will be severe most years where they exist, but are mostly reversible, resulting in an overall pressure rating of Low.",
+          id = "expanders",
+          collapsible = TRUE,
+          closable = FALSE,
+          collapsed = FALSE
+        )
+    } else if (input$options == "lateral") {
+      box(
+          title = "Lateral Barriers",
+          "There are numerous types of lateral barriers that potentially occur in the watershed, including dykes, berms, and linear development (i.e., road and rail lines), all of which can restrict the ability of anadromous salmon to move into floodplains, riparian wetlands, and other off-channel habitats. No comprehensive lateral barrier data exists within the watershed, so pressure ratings were based on qualitative local knowledge. Lateral barriers are not thought to be as prevalent as road- or rail-stream crossings but are likely very severe where they do exist. Significant lateral barriers are known to occur along the mainstem of the Horsefly River, which disconnect the mainstem river from historic floodplain and off-channel habitat. Overall, the planning team decided that a High pressure rating adequately captured the effect that lateral barriers are having on connectivity in the watershed. Work to begin quantifying and mapping lateral habitat will begin in 2022-23, as described in the Operational Plan under Strategy 2: Lateral barrier remediation. ",
+          id = "expanders",
+          collapsible = TRUE,
+          closable = FALSE,
+          collapsed = FALSE
+        )
+    }
+  })
+  # observeEvent(output$options, {
+  #   if (input$options == "dam") {
+  #     updateBox(session = session,
+  #               id = "expanders1",
+  #               "There are nine mapped small dams on “potentially accessible” stream segments in the watershed, blocking a total of 8.09 km (~23% of the total blocked habitat) of modelled spawning and rearing habitat for anadromous salmon, resulting in a Medium extent. The extent rating of these structures was confirmed by the planning team.There are two known fish-passage structures in the watershed, including on the dam at the outlet of McKinley Lake. The remaining dams likely block passage for anadromous salmon and would require significant resources to remediate. However, due to the limited extent of dams in the watershed, a final pressure rating of Medium was assigned. Four small dams were identified on the priority barrier list. Three of the dams require further assessment and confirmation of upstream habitat quality, and the dam observed at the outlet of Kwun Lake does not exist.",
+  #               title = "Small Dams (<3 m height)"
+  #               )
+  #   } else if (input$options == "road") {
+  #     updateBox(session = session,
+  #               id = "expanders1",
+  #               "Road-stream crossings are the most abundant barrier type in the watershed, with 103 assessed and modelled crossings located on stream segments with modelled habitat. Demographic road crossings (highways, municipal, and paved roads) block 7.31 km of habitat (~21% of the total blocked habitat), with 73% of assessed crossings having been identified as barriers to fish passage. Resource roads block 19.57 km of habitat (~56%), with 60% of assessed crossings having been identified as barriers. The planning team felt that the data was underestimating the severity of road-stream crossing barriers in the watershed, and therefore decided to update the rating from High to Very High. The planning team also felt that an irreversibility rating of Medium was appropriate due to the technical complexity and resources required to remediate road-stream crossings.",               
+  #               title = "Road-stream Crossings"
+  #               )
+  #   }
+  # })
+
+
+                                                          # box(
+                                                          #   title = "Road-stream Crossings",
+                                                          #   "Road-stream crossings are the most abundant barrier type in the watershed, with 103 assessed and modelled crossings located on stream segments with modelled habitat. Demographic road crossings (highways, municipal, and paved roads) block 7.31 km of habitat (~21% of the total blocked habitat), with 73% of assessed crossings having been identified as barriers to fish passage. Resource roads block 19.57 km of habitat (~56%), with 60% of assessed crossings having been identified as barriers. The planning team felt that the data was underestimating the severity of road-stream crossing barriers in the watershed, and therefore decided to update the rating from High to Very High. The planning team also felt that an irreversibility rating of Medium was appropriate due to the technical complexity and resources required to remediate road-stream crossings.",
+                                                          #   id = "expanders",
+                                                          #   collapsible = TRUE,
+                                                          #   closable = FALSE,
+                                                          #   collapsed = TRUE
+                                                          # ),
+                                                          # box(
+                                                          #   title = "Trail-stream crossings",
+                                                          #   "There is very little spatial data available on trail-stream crossings in the watershed, so the planning team was unable to quantify the true Extent and Severity of this barrier type. However, the planning team felt that trail-stream crossings are not prevalent within the watershed and that, where they do exist, they do not significantly impact passage for anadromous salmon. As most crossings will be fords or similar structures, remediation may not be required, or remediation costs associated with these barriers would be quite low. Overall, the planning team felt that the pressure rating for trail-stream crossings was likely Low; however, the lack of ground-truthed evidence to support this rating was identified as a knowledge gap within this plan.",
+                                                          #   id = "expanders",
+                                                          #   collapsible = TRUE,
+                                                          #   closable = FALSE,
+                                                          #   collapsed = TRUE
+                                                          # ),
+                                                          # box(
+                                                          #   title = "Lateral Barriers",
+                                                          #   "There are numerous types of lateral barriers that potentially occur in the watershed, including dykes, berms, and linear development (i.e., road and rail lines), all of which can restrict the ability of anadromous salmon to move into floodplains, riparian wetlands, and other off-channel habitats. No comprehensive lateral barrier data exists within the watershed, so pressure ratings were based on qualitative local knowledge. Lateral barriers are not thought to be as prevalent as road- or rail-stream crossings but are likely very severe where they do exist. Significant lateral barriers are known to occur along the mainstem of the Horsefly River, which disconnect the mainstem river from historic floodplain and off-channel habitat. Overall, the planning team decided that a High pressure rating adequately captured the effect that lateral barriers are having on connectivity in the watershed. Work to begin quantifying and mapping lateral habitat will begin in 2022-23, as described in the Operational Plan under Strategy 2: Lateral barrier remediation. ",
+                                                          #   id = "expanders",
+                                                          #   collapsible = TRUE,
+                                                          #   closable = FALSE,
+                                                          #   collapsed = TRUE
+                                                          # ),
+                                                          # box(
+                                                          #   title = "Natural Barriers",
+                                                          #   "Natural barriers to fish passage can include debris flows, log jams, sediment deposits, etc., but natural features that have always restricted fish passage (e.g., waterfalls) are not considered under this barrier type. Natural barriers are difficult to include in a spatial prioritization framework due to their transient nature. The planning team identified known natural barriers that occur throughout the watershed, such as beaver dams and log jams. Generally, these natural barriers are only severe impediments to fish passage during low-flow years, but reduced baseflows have become more common in recent years. Based on this, the planning team felt that natural barriers will be severe most years where they exist, but are mostly reversible, resulting in an overall pressure rating of Low.",
+                                                          #   id = "expanders",
+                                                          #   collapsible = TRUE,
+                                                          #   closable = FALSE,
+                                                          #   collapsed = TRUE
+                                                          # )
 }
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 # finally, we need to call the shinyapp function with the ui and server as arguments
-shinyApp(ui, server)
+app <- shinyApp(ui, server)
 
 
 #run app locally
-#runApp(app)
+runApp(app)

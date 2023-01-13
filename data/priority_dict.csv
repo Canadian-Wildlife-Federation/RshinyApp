@@ -1,0 +1,9 @@
+﻿Attribute,Definition
+Stream Name:,Name of the stream on which the prioritized crossings rests.
+Feature Type:,
+Priority:,Priority in which measures should be taken for barrier remediation.
+Owner:,Owner of the crossing in question.
+Habitat Quality (Upstream):,Quality of the modelled habitat upstream of the crossing. The habitat can vary due to a number of factors (e.g. slope)
+Road Name:,Road name closest to the crossing in question.
+Reason:,Reason for which crossing should be remediated/ removed.
+Notes:,Extra information pertinent to the prioritzation of the crossing.
