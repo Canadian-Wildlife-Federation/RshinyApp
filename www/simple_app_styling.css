@@ -126,7 +126,7 @@ td {
     margin-left: 0px;
     margin-top: 0px;
     background-color: #3d5c62;
-    box-shadow: 0 4px 4px 0px #b5c0c2;
+    box-shadow: 0 2px 20px rgba(0, 0, 0,.3);
 }
 
 #row2 {
@@ -151,13 +151,18 @@ td {
     padding-right: 5px;
 }
 
+div.box-body .shiny-input-container {
+    width: 100%;
+}
+
+
 /*Barrier selector input*/
 .selectize-control.multi .selectize-input.has-items {
     height: max-content;
 }
 
 /* selector labels*/
-label#variable-label.control-label, label#priority-label.control-label {
+label#variable-label.control-label, label#priority-label.control-label, label#options-label.control-label {
     color: white;
     font-weight: normal;
     font-size: 16px;
@@ -211,6 +216,11 @@ label#variable-label.control-label, label#priority-label.control-label {
     -moz-border-radius: 4px;
     border-radius: 0px;
 }
+
+#options {
+    z-index:1000;
+}
+
 /*selector container boxes*/
 .shiny-input-container:not(.shiny-input-container-inline) {
     background-color:#3d5c62;
@@ -265,7 +275,7 @@ table.dataTable thead > tr > th.sorting::before, table.dataTable thead > tr > th
 /*---------------------*/
 
 #mymap {
-    height: calc(100vh - 250px) !important;
+    height: calc(100vh - 200px) !important;
     margin-top: -25px;
     z-index:0;
 }
@@ -305,6 +315,11 @@ table.dataTable thead > tr > th.sorting::before, table.dataTable thead > tr > th
 .row {
     margin: 10px;
 }
+
+
+p {
+    font-size:17px;
+}
 /*Content boxes*/
 .box{
     margin-bottom: 15px;
@@ -328,6 +343,7 @@ table.dataTable thead > tr > th.sorting::before, table.dataTable thead > tr > th
     text-transform: uppercase;
     font-weight: bolder;
     font-family: 'Source Sans Pro','Helvetica Neue',Helvetica,Arial,sans-serif;
+    box-shadow: 0 2px 20px rgba(0,0,0,.3);
 }
 
 #constatus .box-header {
@@ -343,8 +359,7 @@ table.dataTable thead > tr > th.sorting::before, table.dataTable thead > tr > th
 }
 
 #expanders .box-title {
-    font-size: 13px;
-    background-color: #3d5c62;
+    font-size: 17px;
 }
 
 #expanders .box-header {
@@ -360,7 +375,7 @@ table.dataTable thead > tr > th.sorting::before, table.dataTable thead > tr > th
 /*Info boxes*/
 .info-box {
     display: inline-block;
-    box-shadow: 0 2px 20px rgba(0, 0, 0,.3);
+    /*box-shadow: 0 2px 20px rgba(0, 0, 0,.3);*/
     margin-top: 10px;
 }
 
@@ -402,7 +417,12 @@ table.dataTable thead > tr > th.sorting::before, table.dataTable thead > tr > th
     font-size: 30px;
 }
 .small-box p {
-    /* font-size: 15px; */
+    font-size: 17px; 
+}
+
+#threat.shiny-html-output.shiny-bound-output {
+    width:240%;
+    z-index: -1000;
 }
 
 /*sidebarPanel box*/
@@ -428,10 +448,21 @@ table.dataTable thead > tr > th.sorting::before, table.dataTable thead > tr > th
     box-shadow: 0 2px 20px rgba(0,0,0,.3);
 }
 
+.barrierselect .shiny-input-container:not(.shiny-input-container-inline) {
+    background-color: #0cde0f;
+}
+
+.selectize-dropdown, .selectize-dropdown.form-control {
+    z-index:1000;
+}
 /*----------------------*/
 /*----EXTRA INFO TAB----*/
 /*----------------------*/
 
 .paras {
     padding:40px;
+}
+
+#dict .shiny-table.spacing-s>tbody>tr>td, #pdict .shiny-table.spacing-s>tbody>tr>td, #tableawk .shiny-table.spacing-s>tbody>tr>td {
+    text-align:left;
 }
