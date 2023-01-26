@@ -13,7 +13,6 @@ library(leaflet.mapboxgl)
 library(htmltools)
 library(leafpop)
 library(osmextract)
-#library(mapboxapi)
 library(ggplot2)
 library(shinydashboard)
 library(shinydashboardPlus)
@@ -39,7 +38,7 @@ boundary <- read_sf("https://features.hillcrestgeo.ca/fwa/collections/whse_basem
 
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
-#watershed connectivity function
+#live reporting functions
 watershed_connectivity <- function(habitat_type){
   request <- paste('https://features.hillcrestgeo.ca/bcfishpass/functions/postgisftw.wcrp_watershed_connectivity_status/items.json?watershed_group_code=HORS&barrier_type=',habitat_type, sep = "")
   res <- GET(request)
@@ -47,14 +46,37 @@ watershed_connectivity <- function(habitat_type){
   return(data$connectivity_status)
 }
 
+barrier_severity <- function(barrier_type){
+  request <- paste('https://features.hillcrestgeo.ca/bcfishpass/functions/postgisftw.wcrp_barrier_severity/items.json?watershed_group_code=HORS&barrier_type=',barrier_type, sep = "")
+  res <- GET(request)
+  data <- fromJSON(rawToChar(res$content))
+  return(c(data$n_assessed_barrier, data$n_assess_total, data$pct_assessed_barrier))
+}
+
+barrier_extent <- function(barrier_type){
+  request <- paste('https://features.hillcrestgeo.ca/bcfishpass/functions/postgisftw.wcrp_barrier_extent/items.json?watershed_group_code=HORS&barrier_type=',barrier_type, sep = "")
+  res <- GET(request)
+  data <- fromJSON(rawToChar(res$content))
+  return(c(data$all_habitat_blocked_km, data$all_habitat_blocked_pct))
+}
+
+barrier_count <- function(barrier_type){
+  request <- paste('https://features.hillcrestgeo.ca/bcfishpass/functions/postgisftw.wcrp_barrier_count/items.json?watershed_group_code=HORS&barrier_type=',barrier_type, sep = "")
+  res <- GET(request)
+  data <- fromJSON(rawToChar(res$content))
+  return(c(data$n_passable, data$n_barrier, data$n_potential, data$n_unknown))
+}
+
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#static statistics
+#live statistics
 hab_conf <- sum(df$pscis_status == "HABITAT CONFIRMATION", na.rm = TRUE)
 assessed <- sum(is.na(df$pscis_assessment_date))
 total <- 526.95 #total km in HORS
 access <- round(total * (watershed_connectivity("ALL") / 100), 2)
 gain <- round(total - access, 2)
+gain_goal <- round((total*0.96) - access, 2)
+dam_assessed_total <- barrier_severity("DAM")[2]
 
 #-------------------------------------------------------------------------------------------------------------------------
 
@@ -125,7 +147,9 @@ ui <- fluidPage(
                                                                        display_pct = TRUE,
                                                                        status = "custom",
                                                                        total = 100,
-                                                                       striped = TRUE),
+                                                                       striped = TRUE))),
+                                            fluidRow(
+                                              box(width = 12, title = "Important Attributes", style="font-weight:bolder;margin-top: 15px;text-align:center;font-size:15px;", id = 'constatus',
                                                  #actionButton("refresh", "Update Status"),
                                                    column(width=3,
                                                           valueBox(assessed, "Assessments Done", icon = icon("solid fa-clipboard-check"))),
@@ -134,7 +158,9 @@ ui <- fluidPage(
                                                    column(width=3,
                                                           valueBox(paste0(toString(gain), " km"), "Amount of Stream Blocked", icon = icon("solid fa-road-barrier"))),
                                                    column(width=3,
-                                                          valueBox(paste0(length(df$aggregated_crossings_id)), "Barriers on Accessible Streams", icon = icon("solid fa-water"))))), 
+                                                          valueBox(paste0(length(df$aggregated_crossings_id)), "Barriers on Accessible Streams", icon = icon("solid fa-water"))),
+                                                   column(width=3,
+                                                          valueBox(paste0(toString(gain_goal), " km"), "Habitat Remediation for Goals", icon = icon("solid fa-cart-plus"))))), 
 
                                           fluidRow(
                                              column(width=5,
@@ -152,6 +178,10 @@ ui <- fluidPage(
                                                     fluidRow(
                                                              uiOutput("box")
                                                     ),
+                                                    fluidRow(
+                                                             id = "pass_title",
+                                                             h1("Summary of Passability")
+                                                    ),
                                                     fluidRow(class = "rowhide",
                                                              plotOutput("attr_pie")
                                                     )
@@ -162,7 +192,7 @@ ui <- fluidPage(
                                                     fluidRow(
                                                       box(width = 12, title = "Connectivity Goals", id = 'congoals',
                                                           
-                                                          infoBox("By 2040, the percent (%) of total linear habitat accessible to anadromous salmon will increase from 94% to 96% within the Horsefly River watershed (i.e., reconnect at least 11.7 km of habitat).", "", icon = icon("solid fa-1"), fill = TRUE),
+                                                          infoBox(paste0("By 2040, the percent (%) of total linear habitat accessible to anadromous salmon will increase from ", toString(watershed_connectivity("ALL")), "% to 96% within the Horsefly River watershed (i.e., reconnect at least ", toString(gain_goal), " km of habitat)."), "", icon = icon("solid fa-1"), fill = TRUE),
                                                           infoBox("By 2024, the total area of overwintering habitat accessible to Anadromous Salmon will increase by 1,500 m2 within the Horsefly River watershed.", "", icon = icon("solid fa-2"), fill = TRUE)
                                                       )),
                                                     fluidRow(
@@ -744,11 +774,20 @@ server <- function(input, output, session) {
             count(barrier_status) %>%
             mutate(Perc = (n/sum(n)) * 100) %>%
             mutate(Freq = n/sum(n))
+            # Compute the cumulative percentages (top of each rectangle)
+            df1$ymax <- cumsum(df1$Perc)
+            # Compute the bottom of each rectangle
+            df1$ymin <- c(0, head(df1$ymax, n=-1))
+            # Compute label position
+            df1$labelPosition <- (df1$ymax + df1$ymin) / 2
+            # Compute a good label
+            df1$label <- paste0(df1$barrier_status, ": ", scales::percent(df1$Freq))
 
-      ggplot(df1, aes(x="", y=Perc, fill = barrier_status)) +
-      geom_bar(stat="identity", width=1, color="#f5f5f5") +
+      ggplot(df1, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, x="", y=Perc, fill = barrier_status)) +
+      geom_rect() +
+      #geom_bar(stat="identity", width=1, color="#f5f5f5") +
       coord_polar("y", start=0) +
-      geom_text(aes(x = 1.6, label=paste(barrier_status, scales::percent(Freq))), color = "black", size = 2, position = position_stack(vjust = .5), check_overlap = TRUE) +
+      geom_text( x=4.5, aes(y=labelPosition, label=label), size=2.5) + # x here controls label position (inner / outer)
       labs(x = "Barrier Status", y = "Proportion %", fill="Barrier Status") +
       scale_fill_manual(values=c("#d52a2a", "#32cd32", "#ffb400", "#965ab3")) +
       theme_void() + # remove background, grid, numeric labels 
@@ -761,10 +800,21 @@ server <- function(input, output, session) {
             mutate(Perc = (n/sum(n)) * 100) %>%
             mutate(Freq = n/sum(n))
 
-      ggplot(df1, aes(x="", y=Perc, fill = barrier_status)) +
-      geom_bar(stat="identity", width=1, color="#f5f5f5") +
+            # Compute the cumulative percentages (top of each rectangle)
+            df1$ymax <- cumsum(df1$Perc)
+            # Compute the bottom of each rectangle
+            df1$ymin <- c(0, head(df1$ymax, n=-1))
+            # Compute label position
+            df1$labelPosition <- (df1$ymax + df1$ymin) / 2
+            # Compute a good label
+            df1$label <- paste0(df1$barrier_status, ": ", scales::percent(df1$Freq))
+
+      ggplot(df1, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, x="", y=Perc, fill = barrier_status)) +
+      #geom_bar(stat="identity", width=1, color="#f5f5f5") +
+      geom_rect() +
       coord_polar("y", start=0) +
-      geom_text(aes(x = 1.6, label=paste(barrier_status, scales::percent(Freq))), color = "black", size = 2, position = position_stack(vjust = .5), check_overlap = TRUE) +
+      geom_text( x=4.25, aes(y=labelPosition, label=label), size=2.5) + # x here controls label position (inner / outer)
+      #geom_text(aes(x = 1.6, label=paste(barrier_status, scales::percent(Freq))), color = "black", size = 2, position = labelPosition, check_overlap = TRUE) +
       labs(x = "Barrier Status", y = "Proportion %", fill="Barrier Status") +
       scale_fill_manual(values=c("#d52a2a", "#32cd32", "#ffb400", "#965ab3")) +
       theme_void() + # remove background, grid, numeric labels 
@@ -822,12 +872,28 @@ server <- function(input, output, session) {
     }
   })
 
+  observe({
+    if (input$options == "dam" | input$options == "road") {
+      shinyjs::showElement(id = "pass_title")
+    } else {
+      shinyjs::hideElement(id = "pass_title")
+    }
+  })
+
+  observe({
+    if (input$priority == "All") {
+      shinyjs::showElement(id = "variable")
+    } else {
+      shinyjs::hideElement(id = "variable")
+    }
+  })
+
   output$box <- renderUI({
     if (input$options == "dam") {
-      p("There are nine mapped small dams on “potentially accessible” stream segments in the watershed, blocking a total of 8.09 km (~23% of the total blocked habitat) of modelled spawning and rearing habitat for anadromous salmon, resulting in a Medium extent. The extent rating of these structures was confirmed by the planning team.There are two known fish-passage structures in the watershed, including on the dam at the outlet of McKinley Lake. The remaining dams likely block passage for anadromous salmon and would require significant resources to remediate. However, due to the limited extent of dams in the watershed, a final pressure rating of Medium was assigned. Four small dams were identified on the priority barrier list. Three of the dams require further assessment and confirmation of upstream habitat quality, and the dam observed at the outlet of Kwun Lake does not exist.", style="font-size:17px",
+      p(paste0("There are ", toString(dam_assessed_total), " mapped small dams on “potentially accessible” stream segments in the watershed, blocking a total of ", toString(barrier_extent("DAM")[1]), " km (~", toString(barrier_extent("DAM")[2]), "% of the total blocked habitat) of modelled spawning and rearing habitat for anadromous salmon, resulting in a Medium extent. The extent rating of these structures was confirmed by the planning team.There are two known fish-passage structures in the watershed, including on the dam at the outlet of McKinley Lake. The remaining dams likely block passage for anadromous salmon and would require significant resources to remediate. However, due to the limited extent of dams in the watershed, a final pressure rating of Medium was assigned. Four small dams were identified on the priority barrier list. Three of the dams require further assessment and confirmation of upstream habitat quality, and the dam observed at the outlet of Kwun Lake does not exist."), style="font-size:17px",
         )
     } else if (input$options == "road") {
-      p("Road-stream crossings are the most abundant barrier type in the watershed, with 103 assessed and modelled crossings located on stream segments with modelled habitat. Demographic road crossings (highways, municipal, and paved roads) block 7.31 km of habitat (~21% of the total blocked habitat), with 73% of assessed crossings having been identified as barriers to fish passage. Resource roads block 19.57 km of habitat (~56%), with 60% of assessed crossings having been identified as barriers. The planning team felt that the data was underestimating the severity of road-stream crossing barriers in the watershed, and therefore decided to update the rating from High to Very High. The planning team also felt that an irreversibility rating of Medium was appropriate due to the technical complexity and resources required to remediate road-stream crossings.", style="font-size:17px",               
+      p(paste0("Road-stream crossings are the most abundant barrier type in the watershed, with ", toString(length(df$aggregated_crossings_id)) ," assessed and modelled crossings located on stream segments with modelled habitat. Demographic road crossings (highways, municipal, and paved roads) block ",  toString(barrier_extent("ROAD,%20DEMOGRAPHIC")[1]), " km of habitat (~", toString(barrier_extent("ROAD,%20DEMOGRAPHIC")[2]), "% of the total blocked habitat), with ", toString(barrier_severity("ROAD,%20DEMOGRAPHIC")[3]), "% of assessed crossings having been identified as barriers to fish passage. Resource roads block ", toString(barrier_extent("ROAD,%20RESOURCE/OTHER")[1]), " km of habitat (~", toString(barrier_extent("ROAD,%20RESOURCE/OTHER")[2]), "%), with ", toString(barrier_severity("ROAD,%20RESOURCE/OTHER")[3]), "% of assessed crossings having been identified as barriers. The planning team felt that the data was underestimating the severity of road-stream crossing barriers in the watershed, and therefore decided to update the rating from High to Very High. The planning team also felt that an irreversibility rating of Medium was appropriate due to the technical complexity and resources required to remediate road-stream crossings."), style="font-size:17px",               
         )
     } else if (input$options == "trail") {
       p("There is very little spatial data available on trail-stream crossings in the watershed, so the planning team was unable to quantify the true Extent and Severity of this barrier type. However, the planning team felt that trail-stream crossings are not prevalent within the watershed and that, where they do exist, they do not significantly impact passage for anadromous salmon. As most crossings will be fords or similar structures, remediation may not be required, or remediation costs associated with these barriers would be quite low. Overall, the planning team felt that the pressure rating for trail-stream crossings was likely Low; however, the lack of ground-truthed evidence to support this rating was identified as a knowledge gap within this plan.",  style="font-size:17px",
@@ -892,9 +958,8 @@ server <- function(input, output, session) {
 }
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 # finally, we need to call the shinyapp function with the ui and server as arguments
-#app <- 
-shinyApp(ui, server)
+app <- shinyApp(ui, server)
 
 
 #run app locally
-#runApp(app)
+runApp(app)
