@@ -132,43 +132,86 @@ ui <- fluidPage(
   includeScript("gomap.js"),
   useShinyjs(),
   #create top navbar
-  navbarPage("WCRP Dashboard", #position = "fixed-top",
+  navbarPage("Horsefly River WCRP", #position = "fixed-top",
     #create tabs in nav bar
-    tabPanel("Useful Statistics",
+    tabPanel("Watershed Summary",
              tabsetPanel(id = "prioritytab",
                          tabPanel(value = "Tab_2",
                                   useShinydashboard(),
                                   #add content to tab panel
                                            fluidRow(
-                                             box(width = 12, title = "Watershed Overview", tags$div("Status of Connectivity: % of Total Linear Habitat", style="font-weight:bolder;margin-top: 15px;text-align:center;font-size:15px;"), id = 'constatus',
+                                             box(width = 12, title = "Status of Connectivity", tags$div("This measure of connectivity is based on the percent of total linear habitat available for anadromous salmon in the Horsefly River watershed.", style="font-weight:bold;margin-top: 15px;text-align:center;font-size:15px;font-style:italic"), 
+                                                 id = 'constatus',
                                                  #h3("Watershed Overview"),
                                                  shinyWidgets::progressBar(id = "connect",
                                                                        value = watershed_connectivity("ALL"),
                                                                        display_pct = TRUE,
                                                                        status = "custom",
                                                                        total = 100,
-                                                                       striped = TRUE))),
-                                            fluidRow(
-                                              box(width = 12, title = "Important Attributes", style="font-weight:bolder;margin-top: 15px;text-align:center;font-size:15px;", id = 'constatus',
-                                                 #actionButton("refresh", "Update Status"),
+                                                                       striped = TRUE),
+                                                  tags$div(id="colorstrip-constatus",),
+                                                  tags$div(id="constatus-strip-text",
+                                                           tags$div(id="poor-text","Poor: 0-80%"),
+                                                           tags$div(id="good-text","Good: 81-90%"),
+                                                           tags$div(id="verygood-text","Very Good: >90%")
+                                                           ),
+                                                 br(),
+                                                 tags$div(h3("Connectivity Overview"),align="center"),
+                                                 hr(),
+                                                 fluidRow(id="statattr",
+                                                   column(width=6,
+                                                          infoBox("Number of barriers on Accessible Streams:", paste0(length(df$aggregated_crossings_id)), icon = icon("solid fa-ban"), fill = TRUE)),
+                                                   column(width=6,
+                                                          infoBox("Amount of habitat that's been reconnected:", paste0(toString("?")), icon = icon("solid fa-water"), fill = TRUE)),
+                                                   column(width=6,
+                                                          infoBox("Amount of stream still blocked:", paste0(toString(gain), " km"), icon = icon("solid fa-road-barrier"), fill = TRUE)),
+                                                   column(width=6,
+                                                          infoBox("Amount of habitat left to reconnect to connectivity goals:", paste0(toString(gain_goal), " km"), icon = icon("solid fa-house-medical-circle-check"), fill = TRUE)),
+                                                 ),
+                                                 tags$div(h3("Work Completed to Date"),align="center"),
+                                                 hr(),
+                                                 fluidRow(
                                                    column(width=3,
                                                           valueBox(assessed, "Assessments Done", icon = icon("solid fa-clipboard-check"))),
                                                    column(width=3,
                                                           valueBox(hab_conf, "Habitat Confirmations", icon = icon("solid fa-seedling"))),
+                                                   #column(width=3,
+                                                   #valueBox(paste0(toString(gain), " km"), "Amount of Stream Blocked", icon = icon("solid fa-road-barrier"))),
                                                    column(width=3,
-                                                          valueBox(paste0(toString(gain), " km"), "Amount of Stream Blocked", icon = icon("solid fa-road-barrier"))),
+                                                          valueBox(paste0(toString("?")), "Designs Created", icon = icon("solid fa-pen-ruler"))),
                                                    column(width=3,
-                                                          valueBox(paste0(length(df$aggregated_crossings_id)), "Barriers on Accessible Streams", icon = icon("solid fa-water"))),
-                                                   column(width=3,
-                                                          valueBox(paste0(toString(gain_goal), " km"), "Habitat Remediation for Goals", icon = icon("solid fa-cart-plus"))))), 
+                                                          valueBox(paste0(toString("?")), "Remediations Completed", icon = icon("solid fa-person-digging")))
+                                                   #column(width=3,
+                                                   #valueBox(paste0(length(df$aggregated_crossings_id)), "Barriers on Accessible Streams", icon = icon("solid fa-water")))
+                                                   #column(width=3,
+                                                   #valueBox(paste0(toString(gain_goal), " km"), "Habitat Remediation for Goals", icon = icon("solid fa-cart-plus")))
+                                             ))),
+#                                            fluidRow(
+#                                              box(width = 12, title = "Work Completed to Date", style="font-weight:bolder;margin-top: 15px;text-align:center;font-size:15px;", id = 'constatus',
+#                                                 #actionButton("refresh", "Update Status"),
+#                                                   column(width=3,
+#                                                          valueBox(assessed, "Assessments Done", icon = icon("solid fa-clipboard-check"))),
+#                                                   column(width=3,
+#                                                          valueBox(hab_conf, "Habitat Confirmations", icon = icon("solid fa-seedling"))),
+#                                                   #column(width=3,
+#                                                          #valueBox(paste0(toString(gain), " km"), "Amount of Stream Blocked", icon = icon("solid fa-road-barrier"))),
+#                                                 column(width=3,
+#                                                        valueBox(paste0(toString("?")), "Designs Created", icon = icon("solid fa-pen-ruler"))),
+#                                                 column(width=3,
+#                                                        valueBox(paste0(toString("?")), "Remediations Completed", icon = icon("solid fa-person-digging")))
+#                                                 #column(width=3,
+#                                                          #valueBox(paste0(length(df$aggregated_crossings_id)), "Barriers on Accessible Streams", icon = icon("solid fa-water")))
+#                                                   #column(width=3,
+#                                                          #valueBox(paste0(toString(gain_goal), " km"), "Habitat Remediation for Goals", icon = icon("solid fa-cart-plus")))
+#                                                 )), 
 
                                           fluidRow(
                                              column(width=5,
                                                 fluidRow(
-                                                  box(width = 12, title = "Summary of Passability",
+                                                  box(width = 12, title = "Barrier Types",
                                                     fluidRow(
-                                                      selectInput("options", "Barrier Type", c("Small Dams (<3 m height)" = "dam", "Road-stream Crossings" = "road", "Trail-stream crossings" = "trail", "Lateral Barriers" = "lateral", "Natural Barriers" = "natural")),
-                                                      bsTooltip("options", "Select your barrier type of interest from the dropdown.", placement = "top", trigger = "hover", options = NULL)
+                                                      selectInput("options", "Select a barrier type:", c("Small Dams (<3 m height)" = "dam", "Road-stream Crossings" = "road", "Trail-stream crossings" = "trail", "Lateral Barriers" = "lateral", "Natural Barriers" = "natural"))
+                                                      #bsTooltip("options", "Select your barrier type of interest from the dropdown.", placement = "top", trigger = "hover", options = NULL)
                                                     ),
                                                     fluidRow(
                                                       column(width = 12,
@@ -180,7 +223,7 @@ ui <- fluidPage(
                                                     ),
                                                     fluidRow(
                                                              id = "pass_title",
-                                                             h1("Summary of Passability")
+                                                             h2("Summary of Passability")
                                                     ),
                                                     fluidRow(class = "rowhide",
                                                              plotOutput("attr_pie")
@@ -196,12 +239,12 @@ ui <- fluidPage(
                                                           infoBox("By 2024, the total area of overwintering habitat accessible to Anadromous Salmon will increase by 1,500 m2 within the Horsefly River watershed.", "", icon = icon("solid fa-2"), fill = TRUE)
                                                       )),
                                                     fluidRow(
-                                                      box(width = 12, title = "Species of Interest", id = "species",
+                                                      box(width = 12, title = "Target Species", id = "species",
                                                       #species boxes
-                                                      fluidRow(
+                                                      fluidRow(id="speciesrow",
                                                         box(
-                                                          tags$img(src = "https://media.fisheries.noaa.gov/dam-migration/750x500-chinook-salmon.jpg?itok=DF6fsFXy", style="width:100%; align = center"), 
-                                                          tags$figcaption("Credit: Roger Tabor, USFWS", style="text-align:right; font-size:smaller"),
+                                                          tags$img(src = "https://media.fisheries.noaa.gov/dam-migration/750x500-chinook-salmon.jpg?itok=DF6fsFXy", style="display: block;margin-left: auto;margin-right: auto;width: 75%"), 
+                                                          tags$figcaption("Credit: Roger Tabor, USFWS", style="text-align:right; font-size:smaller; margin-right:12.5%"),
                                                           br(),
                                                           title = "Chinook Salmon | Kekèsu | Oncorhynchus tshawytscha ",
                                                           "Chinook Salmon are the first to return each year, usually in early August, and have the most limited distribution within the watershed. Known spawning occurs in parts of the Horsefly River mainstem above the confluence with the Little Horsefly River and throughout McKinley Creek as far as Elbow Lake. Important rearing systems include Patenaude Creek, Kroener Creek, Black Creek, Woodjam Creek, Deerhorn Creek, and Wilmot Creek.",
@@ -210,10 +253,10 @@ ui <- fluidPage(
                                                           closable = FALSE,
                                                           collapsed = TRUE
                                                         )),
-                                                      fluidRow(
+                                                      fluidRow(id="speciesrow",
                                                         box(
-                                                          tags$img(src = "https://media.fisheries.noaa.gov/dam-migration/750x500-coho-salmon.jpg?itok=lan8JjNI", style="width:100%; align = center"), 
-                                                          tags$figcaption("Credit: NOAA Fisheries", style="text-align:right; font-size:smaller"),
+                                                          tags$img(src = "https://media.fisheries.noaa.gov/dam-migration/750x500-coho-salmon.jpg?itok=lan8JjNI", style="display: block;margin-left: auto;margin-right: auto;width: 75%"), 
+                                                          tags$figcaption("Credit: NOAA Fisheries", style="text-align:right; font-size:smaller; margin-right:12.5%"),
                                                           br(),
                                                           title = "Coho Salmon | Sxeyqs | Oncorhynchus kisutch",
                                                           "Coho Salmon are the most widely distributed of the three focal species in the watershed, with the ability to migrate into smaller, upper tributary systems (DFO 1991). Spawning occurs in the Little Horsefly River between Gruhs Lake and Horsefly Lake, McKinley Creek below McKinley Lake, Woodjam Creek, Patenaude Creek, Tisdall Creek, and Black Creek. Rearing fry and juveniles have been observed in the Little Horsefly River, Patenaude Creek, and McKinley Creek up to Bosk Lake. ",
@@ -222,10 +265,10 @@ ui <- fluidPage(
                                                           closable = FALSE,
                                                           collapsed = TRUE
                                                         )),
-                                                      fluidRow(
+                                                      fluidRow(id="speciesrow",
                                                         box(
-                                                          tags$img(src = "https://media.fisheries.noaa.gov/styles/full_width/s3/dam-migration/900x600-sockeye-salmon-noaa.jpg?itok=6e4dVBEy", style="width:100%; align = center"), 
-                                                          tags$figcaption("Credit: NOAA Fisheries, USFWS", style="text-align:right; font-size:smaller"),
+                                                          tags$img(src = "https://media.fisheries.noaa.gov/styles/full_width/s3/dam-migration/900x600-sockeye-salmon-noaa.jpg?itok=6e4dVBEy", style="display: block;margin-left: auto;margin-right: auto;width: 75%"), 
+                                                          tags$figcaption("Credit: NOAA Fisheries, USFWS", style="text-align:right; font-size:smaller; margin-right:12.5%"),
                                                           br(),
                                                           title = "Sockeye Salmon | Sqlelten7ùwi | Oncorhynchus nerka ",
                                                           "Sockeye Salmon have historically been the most abundant of the three focal species in the watershed, though the population has seen significant declines in recent years (DFO 1991, S. Hocquard pers. comm.). Sockeye Salmon spawning is known to occur throughout the Horsefly River (up to the impassable falls), in the Little Horsefly River between Gruhs Lake and Horsefly Lake, Moffat Creek (up to the impassible falls), and McKinley Creek up to Elbow Lake (PSF 2018, DFO 1991, S. Hocquard pers. comm.). Additionally, a spawning channel aimed at enhancing the Sockeye Salmon population was constructed by Fisheries and Oceans Canada in 1989 (DFO 1991). Currently, there are no Sockeye Salmon rearing in the Horsefly River watershed – all emergent fry migrate down to Quesnel Lake.",
@@ -272,7 +315,7 @@ ui <- fluidPage(
                                     )),
     ),
     
-    tabPanel("Interactive Map", 
+    tabPanel("Interactive Map (sidebyside)", 
              tabsetPanel(id = "alltab",
                          tabPanel("", value = "Tab_1", 
                                    #add content to tab panel
@@ -282,7 +325,7 @@ ui <- fluidPage(
                                     selectInput("variable", "Barrier Status", c("Passable" = "PASSABLE", "Barrier" = "BARRIER","Potential"="POTENTIAL","Unknown"="UNKNOWN"), selected = c("PASSABLE", "BARRIER","POTENTIAL","UNKNOWN"), multiple = TRUE),
                                     bsTooltip("variable", "Here is some text with your instructions", placement = "top", trigger = "hover", options = NULL)
                                   ),
-                                  tags$hr(style="border-color: white;"),
+                                  tags$hr(style="border-color: transparent;"),
                                   fluidRow(id = "row2",
                                            column(width=7,
                                                   leafletOutput("mymap")
@@ -295,12 +338,32 @@ ui <- fluidPage(
              )
     ),
     
-    tabPanel("Additional Information",
+    tabPanel("Interactive Map (stacked)", 
+             tabsetPanel(id = "alltabside",
+                         tabPanel("", value = "Tab_1_side", 
+                                  #add content to tab panel
+                                  fluidRow(id = "row1",
+                                           selectInput("priority", "Barrier List", c("All" = "All", "Priority" = "Priority", "Intermediate" = "Intermediate"), selected = "All"),
+                                           bsTooltip("priority", "Here is some text with your instructions", placement = "top", trigger = "hover", options = NULL),
+                                           selectInput("variable", "Barrier Status", c("Passable" = "PASSABLE", "Barrier" = "BARRIER","Potential"="POTENTIAL","Unknown"="UNKNOWN"), selected = c("PASSABLE", "BARRIER","POTENTIAL","UNKNOWN"), multiple = TRUE),
+                                           bsTooltip("variable", "Here is some text with your instructions", placement = "top", trigger = "hover", options = NULL)
+                                  ),
+                                  tags$hr(style="border-color: transparent;"),
+                                  fluidRow(id = "row2",
+                                           leafletOutput("mymap2"),
+                                           br(),
+                                           dataTableOutput("mytable2")
+                                  )
+                         )
+             )
+    ),
+    
+    tabPanel("Background Information",
               tabsetPanel(id = "alltab",
                           tabPanel("", value = "Tab_3", 
                                    #add content to tab panel
-                                   fluidRow(
-                                     column(width=12,
+                                   #fluidRow(
+                                     #column(width=12,
                                             fluidRow(style="margin-left:10vw;margin-right:10vw;border-radius:4px;background-color:white;",
                                                      div(class="paras",
                                                            h2("Background"),
@@ -311,7 +374,7 @@ ui <- fluidPage(
                                                            p("This dashboard provides an easy tool for project partners and other interested parties to easily access and explore the watershed connectivity status, project progress, and explore the barriers in the watershed (including the intermediate and priority barrier lists)."),
                                                            h2("Barrier Prioritization"),
                                                            hr(),
-                                                           div(class="barrprior", img(src="barrier_prioritization.png", style="width:80%;")),
+                                                           div(class="barrprior", img(src="barrier_prioritization.png", style="width:80%;"),align="center"),
                                                            br(),
                                                            p("The barrier prioritization process comprises three stages:",
                                                              tags$div(
@@ -328,7 +391,7 @@ ui <- fluidPage(
                                                            h2("Priority Data Dictionary"),
                                                            hr(),
                                                            tableOutput("pdict")
-                                   ))))
+                                   ))#))
                           )
               )
 
@@ -338,15 +401,17 @@ ui <- fluidPage(
                tabsetPanel(id = "alltab",
                            tabPanel("", value = "Tab_4", 
                                     #add content to tab panel
-                                    fluidRow(
-                                      column(width=12, style="padding-right:15px;padding-left:15px;",
-                                             fluidRow(style="margin-left:10vw;margin-right:10vw;border-radius:4px;background-color:white;",
+                                    #fluidRow(
+                                      #column(width=12, style="padding-right:15px;padding-left:15px;",
+                                             fluidRow(style="margin-left:10vw;margin-right:10vw;border-radius:4px;background-color:white;height:100vh",
                                                       div(class="paras",
                                                         p("This dashboard summarizes the culmination of a collaborative planning process undertaken in the Horsefly River watershed over many months of work with a multi-partner planning team of individuals and groups passionate about the conservation and restoration of freshwater ecosystems and the species they support. Plan development was funded by the BC Salmon Restoration and Innovation Fund, Canada Nature Fund for Aquatic Species at Risk, and the RBC Bluewater Project. We were fortunate to benefit from the feedback, guidance, and wisdom of many groups and individuals who volunteered their time throughout this process — this publication would not have been possible without the engagement of our partners and the planning team."),
                                                         p("We recognize the incredible fish passage and connectivity work that has occurred in the Horsefly River watershed to date, and we are excited to continue partnering with local groups and organizations to build upon existing initiatives and provide a road map to push connectivity remediation forward over the next 20 years and beyond."),
                                                         p("The Canadian Wildlife Federation recognizes that the lands and waters that form the basis of this project are the traditional unceded territory of the Northern Secwepemc people. We are grateful for the opportunity to learn from the stewards of this land and work together to benefit Pacific Salmon. A special thank you to Nishitha Singi for sharing the traditional Secwepemctsín names used in this plan."),
-                                                        tableOutput("tableawk")
-                                    ))))
+                                                        br(),
+                                                        fluidRow(align="center",
+                                                          tableOutput("tableawk"))
+                                    ))#))
 
                            )
                )
@@ -657,7 +722,7 @@ server <- function(input, output, session) {
                        fillOpacity = 0.90,
                        options = leafletOptions(pane = "maplabels")
                        ) %>%
-      addPolylines(data = df_str, color = "blue", opacity = 1, label = ~paste0(gnis_name),
+      addPolylines(data = df_str, color = "cadetblue", weight = 1.5, opacity = 1, label = ~paste0(gnis_name),
       labelOptions = labelOptions(
         style = list(
           "color" = "black",
@@ -665,10 +730,10 @@ server <- function(input, output, session) {
           "font-size" = "15px",
           "border-color" = "rgba(0,0,0,0.5)"
       )),  group = "Streams", options = leafletOptions(pane = "maplabels")) %>%
-      addPolylines(data = df_null, color = "blue", opacity = 1,  group = "Streams", options = leafletOptions(pane = "maplabels")) %>%
+      addPolylines(data = df_null, color = "cadetblue", weight = 1.5, opacity = 1,  group = "Streams", options = leafletOptions(pane = "maplabels")) %>%
       #addPolylines(data = df_nonstr, color = "grey", group = "Non-Streams") %>%
       addPolygons(data = boundary, stroke = TRUE, fillOpacity = 0, smoothFactor = 0.5,
-    color = "black", opacity = 1, group = "Watershed<br>Boundary", fillColor = NA, options = leafletOptions(pane = "polygons")) %>%
+    color = "red", weight = 2, opacity = 1, group = "Watershed<br>Boundary", fillColor = NA, options = leafletOptions(pane = "polygons")) %>%
       addEasyButton(easyButton(
         icon = "fa-home", title = "Deafult View",
         onClick = JS("function(btn, map){ map.setView([52.280408375,	-121.005149476], 10); }"))) %>%
@@ -729,6 +794,209 @@ server <- function(input, output, session) {
 
     })
   
+  ###################################################################################################
+  ##########################DELETE DUPE CODE BELOW ONCE LAYOUT IS DECIDED############################
+  ###################################################################################################
+  
+  #leaflet map rendering
+  output$mymap2 <- renderLeaflet({
+    
+    
+    leaflet() %>%
+      addMapPane(name = "polygons", zIndex = 410) %>%
+      addMapPane(name = "maplabels", zIndex = 420) %>% # higher zIndex rendered on top
+      addTiles() %>%
+      addMapboxGL(style = "mapbox://styles/mapbox/streets-v9", group = "Mapbox", options = leafletOptions(pane = "polygons")) %>%
+      addMapboxGL(style = "mapbox://styles/mapbox/satellite-v9", group = "Mapbox<br>Satellite", options = leafletOptions(pane = "polygons")) %>%
+      addCircleMarkers(data = y() %>%
+                         
+                         dplyr::filter(
+                           barrier_status == "PASSABLE"
+                         ),
+                       lat = ~lat,
+                       lng = ~long,
+                       
+                       clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+                          var childCount = cluster.getChildCount(); 
+                          var c = ' marker-custom-';  
+                          if (childCount < 5) {  
+                            c += 'large';  
+                          } else if (childCount < 50) {  
+                            c += 'medium';  
+                          } else { 
+                            c += 'small';  
+                          }    
+                          return new L.DivIcon({ html: '<div><span>' + childCount + '</span></div>', className: 'marker-cluster' + c, iconSize: new L.Point(40, 40) });
+
+                        }")),
+                       color = "white",
+                       fillColor = ~col(barrier_status),
+                       popup = ~label,
+                       group = "Passable",
+                       opacity = 1,
+                       fillOpacity = 0.90,
+                       options = leafletOptions(pane = "maplabels")
+      ) %>%
+      addCircleMarkers(data = y() %>%
+                         
+                         dplyr::filter(
+                           barrier_status == "BARRIER"
+                         ),
+                       lat = ~lat,
+                       lng = ~long,
+                       
+                       clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+    var childCount = cluster.getChildCount(); 
+    var c = ' marker-custom-';  
+    if (childCount < 5) {  
+      c += 'large';  
+    } else if (childCount < 50) {  
+      c += 'medium';  
+    } else { 
+      c += 'small';  
+    }    
+    return new L.DivIcon({ html: '<div><span>' + childCount + '</span></div>', className: 'marker-cluster' + c, iconSize: new L.Point(40, 40) });
+
+  }")),
+                       color = "white",
+                       fillColor = ~col(barrier_status),
+                       popup = ~label,
+                       group = "Barrier",
+                       opacity = 1,
+                       fillOpacity = 0.90,
+                       options = leafletOptions(pane = "maplabels")
+      ) %>%
+      addCircleMarkers(data = y() %>%
+                         dplyr::filter(
+                           barrier_status == "POTENTIAL"
+                         ),
+                       lat = ~lat,
+                       lng = ~long,
+                       
+                       clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+    var childCount = cluster.getChildCount(); 
+    var c = ' marker-custom-';  
+    if (childCount < 5) {  
+      c += 'large';  
+    } else if (childCount < 50) {  
+      c += 'medium';  
+    } else { 
+      c += 'small';  
+    }    
+    return new L.DivIcon({ html: '<div><span>' + childCount + '</span></div>', className: 'marker-cluster' + c, iconSize: new L.Point(40, 40) });
+
+  }")),
+                       color = "white",
+                       fillColor = ~col(barrier_status),
+                       popup = ~label,
+                       group = "Potential",
+                       opacity = 1,
+                       fillOpacity = 0.90,
+                       options = leafletOptions(pane = "maplabels")
+      ) %>%
+      addCircleMarkers(data = y() %>%
+                         dplyr::filter(
+                           barrier_status == "UNKNOWN"
+                         ),
+                       lat = ~lat,
+                       lng = ~long,
+                       
+                       clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+    var childCount = cluster.getChildCount(); 
+    var c = ' marker-custom-';  
+    if (childCount < 5) {  
+      c += 'large';  
+    } else if (childCount < 50) {  
+      c += 'medium';  
+    } else { 
+      c += 'small';  
+    }    
+    return new L.DivIcon({ html: '<div><span>' + childCount + '</span></div>', className: 'marker-cluster' + c, iconSize: new L.Point(40, 40) });
+
+  }")),
+                       color = "white",
+                       fillColor = ~col(barrier_status),
+                       popup = ~label,
+                       group = "Unknown",
+                       opacity = 1,
+                       fillOpacity = 0.90,
+                       options = leafletOptions(pane = "maplabels")
+      ) %>%
+      addPolylines(data = df_str, color = "cadetblue", weight = 1.5, opacity = 1, label = ~paste0(gnis_name),
+                   labelOptions = labelOptions(
+                     style = list(
+                       "color" = "black",
+                       "box-shadow" = "3px 3px rgba(0,0,0,0.25)",
+                       "font-size" = "15px",
+                       "border-color" = "rgba(0,0,0,0.5)"
+                     )),  group = "Streams", options = leafletOptions(pane = "maplabels")) %>%
+      addPolylines(data = df_null, color = "cadetblue", weight = 1.5, opacity = 1,  group = "Streams", options = leafletOptions(pane = "maplabels")) %>%
+      #addPolylines(data = df_nonstr, color = "grey", group = "Non-Streams") %>%
+      addPolygons(data = boundary, stroke = TRUE, fillOpacity = 0, smoothFactor = 0.5,
+                  color = "red", weight = 2, opacity = 1, group = "Watershed<br>Boundary", fillColor = NA, options = leafletOptions(pane = "polygons")) %>%
+      addEasyButton(easyButton(
+        icon = "fa-home", title = "Deafult View",
+        onClick = JS("function(btn, map){ map.setView([52.280408375,	-121.005149476], 10); }"))) %>%
+      addLegend("topright", pal = col, values = df$barrier_status) %>%
+      # Layers control
+      addLayersControl(
+        baseGroups = c("Mapbox", "Mapbox<br>Satellite"),
+        overlayGroups = c("Streams", "Watershed<br>Boundary"),
+        options = layersControlOptions(collapsed = FALSE)
+      )
+  })
+  
+  #zoom_level = JS("function(map){ return map.getZoom(); }")
+  
+  #zoom level for tooltip
+  #   observe({
+  #     if (is.null(input$mymap_zoom))
+  #       return()
+  #     isolate({
+  #       leafletProxy(
+  #         mapId = "mymap") %>%
+  #         addPolylines(data = df_str, color = "blue", opacity = 1,  label = if(input$mymap_zoom < 8) gnis_name,  group = "Streams", options = leafletOptions(pane = "maplabels"))
+  #     })
+  # })
+  
+  # reference for gomap.js function
+  observe({
+    if (is.null(input$goto))
+      return()
+    isolate({
+      map <- leafletProxy("mymap")
+      dist <- 0.0005
+      lat <- input$goto$lat
+      long <- input$goto$lng
+      map %>% fitBounds(long - dist, lat - dist, long + dist, lat + dist)
+    })
+  })
+  
+  #data table rendering
+  output$mytable2 <- renderDataTable({
+    
+    dt <- y()[, c("id", "pscis_stream_name", "barrier_status", "crossing_feature_type", "lat", "long")] %>%
+      #  dplyr::filter(
+      #   barrier_status %in% input$variable
+      # ) %>%
+      st_drop_geometry() %>%
+      mutate(Location = paste('<a class="go-map" href="" data-lat="', lat, '" data-long="', long, '"><i class="fa fa-crosshairs"></i></a>', sep=""))
+    
+    
+    action <- DT::dataTableAjax(session, dt, outputId = "mytable")
+    
+    datatable(dt, options = list(scrollY = 'calc(100vh - 350px)', ajax = list(url = action), columnDefs = list(list(visible=FALSE, targets=c(5,6)))),
+              colnames = c("ID", "Stream Name", "Barrier Status", "Potenital Crossing Type", "Latitude", "Longitude", "Location"),
+              escape = FALSE,
+              selection = "none",
+              style = "bootstrap"
+    )
+    
+  })
+  ##############################################################################################
+  ##############################################################################################
+  ##############################################################################################
+  
   # Stats Tab panel ---------------------------------------------------------------------
   # output$attr_bar <- renderPlot(width = "auto",
   # height = "auto",
@@ -787,7 +1055,7 @@ server <- function(input, output, session) {
       geom_rect() +
       #geom_bar(stat="identity", width=1, color="#f5f5f5") +
       coord_polar("y", start=0) +
-      geom_text( x=4.5, aes(y=labelPosition, label=label), size=2.5) + # x here controls label position (inner / outer)
+      geom_text( x=4.75, aes(y=labelPosition, label=label), size=3) + # x here controls label position (inner / outer)
       labs(x = "Barrier Status", y = "Proportion %", fill="Barrier Status") +
       scale_fill_manual(values=c("#d52a2a", "#32cd32", "#ffb400", "#965ab3")) +
       theme_void() + # remove background, grid, numeric labels 
@@ -958,8 +1226,9 @@ server <- function(input, output, session) {
 }
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 # finally, we need to call the shinyapp function with the ui and server as arguments
-app <- shinyApp(ui, server)
+#app <- 
+shinyApp(ui, server)
 
 
 #run app locally
-runApp(app)
+#runApp(app)
