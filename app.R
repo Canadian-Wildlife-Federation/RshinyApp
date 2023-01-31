@@ -180,7 +180,7 @@ ui <- fluidPage(
                                                    column(width=3,
                                                           valueBox(paste0(toString("?")), "Designs Created", icon = icon("solid fa-pen-ruler"))),
                                                    column(width=3,
-                                                          valueBox(paste0(toString("?")), "Remediations Completed", icon = icon("solid fa-person-digging")))
+                                                   valueBox(paste0(toString("?")), "Remediations Completed", icon = icon("solid fa-person-digging")))
                                                    #column(width=3,
                                                    #valueBox(paste0(length(df$aggregated_crossings_id)), "Barriers on Accessible Streams", icon = icon("solid fa-water")))
                                                    #column(width=3,
