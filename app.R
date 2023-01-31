@@ -160,6 +160,12 @@ ui <- fluidPage(
                                                    column(width=3,
                                                           valueBox(paste0(length(df$aggregated_crossings_id)), "Barriers on Accessible Streams", icon = icon("solid fa-water"))),
                                                    column(width=3,
+                                                          valueBox(paste0(length(df$aggregated_crossings_id)), "Barriers on Accessible Streams", icon = icon("solid fa-water"))),
+                                                   column(width=3,
+                                                          valueBox(paste0(length(df$aggregated_crossings_id)), "Barriers on Accessible Streams", icon = icon("solid fa-water"))),
+                                                   column(width=3,
+                                                          valueBox(paste0(length(df$aggregated_crossings_id)), "Barriers on Accessible Streams", icon = icon("solid fa-water"))),
+                                                   column(width=3,
                                                           valueBox(paste0(toString(gain_goal), " km"), "Habitat Remediation for Goals", icon = icon("solid fa-cart-plus"))))), 
 
                                           fluidRow(
