@@ -101,8 +101,12 @@ td {
     text-align: center;
 }
 
-#mytable {
+#mytable, #mytable2 {
     margin-top: -25px;
+}
+
+.dataTables_scrollBody {
+    background-color: white;
 }
 
 /*----------------------*/
@@ -280,6 +284,11 @@ table.dataTable thead > tr > th.sorting::before, table.dataTable thead > tr > th
     z-index:0;
 }
 
+#mymap2 {
+    height: calc(100vh - 700px) !important;
+    margin-top: -25px;
+    z-index:0;
+}
 /*Popup table background colour*/
 .popup {
     background-color:rgb(241, 241, 241);
@@ -292,12 +301,13 @@ table.dataTable thead > tr > th.sorting::before, table.dataTable thead > tr > th
 
 /*Tab background*/
 .tab-content>.tab-pane {
-    background-color: whitesmoke;
+    background-color: rgb(216, 216, 216);
 }
 /*Progress bar*/
 .progress {
     background-color: #aaaaaa;
     box-shadow: 0 2px 20px rgba(0,0,0,.3);
+    margin-bottom: 5px;
 }
 
 .progress-group .progress-text {
@@ -317,7 +327,7 @@ table.dataTable thead > tr > th.sorting::before, table.dataTable thead > tr > th
 }
 
 
-p {
+p, li {
     font-size:17px;
 }
 /*Content boxes*/
@@ -366,7 +376,7 @@ p {
     background-color: #3d5c62;
 }
 
-.col-sm-6 {
+#speciesrow .col-sm-6 {
     width: 100%;
     padding-right: 5px;
     padding-left: 5px;
@@ -387,8 +397,8 @@ p {
 }
 
 .info-box-number {
-    font-weight: 600;
-    font-size: 18px;
+    font-weight: bolder;
+    font-size: 20px;
 }
 
 .col-sm-4 {
@@ -396,7 +406,7 @@ p {
     padding: 0;
 }
 
-.col-sm-3, .col-sm-12 {
+.col-sm-3, .col-sm-6, .col-sm-12 {
     padding-right: 5px;
     padding-left: 5px;
 }
@@ -415,9 +425,12 @@ p {
 
 .small-box h3 {
     font-size: 30px;
+    text-align: left;
 }
 .small-box p {
     font-size: 17px; 
+    text-align: left;
+    padding-right: 20px;
 }
 
 #threat.shiny-html-output.shiny-bound-output {
@@ -455,6 +468,10 @@ p {
 .selectize-dropdown, .selectize-dropdown.form-control {
     z-index:1000;
 }
+
+#pass_title {
+    text-align: center;
+}
 /*----------------------*/
 /*----EXTRA INFO TAB----*/
 /*----------------------*/
@@ -465,4 +482,59 @@ p {
 
 #dict .shiny-table.spacing-s>tbody>tr>td, #pdict .shiny-table.spacing-s>tbody>tr>td, #tableawk .shiny-table.spacing-s>tbody>tr>td {
     text-align:left;
+}
+
+#colorstrip-constatus{
+    width: 100%; height: 10px;
+    border-style: solid;
+    border: 0px  white;
+    background: linear-gradient(to right, rgb(224, 0, 0) 80%, rgb(128, 187, 0) 80%, rgb(128, 187, 0) 90%, rgb(0, 128, 0) 90%, rgba(0, 128, 0) 100%);
+}
+#constatus-strip-text {
+    width: 100%; height: 10px;
+}
+
+#poor-text, #good-text, #verygood-text{
+    display:inline-block;
+    text-align: center;
+    font-style:italic;
+    font-size: 13px;
+}
+
+#poor-text {
+    width: 80%;
+}
+
+#good-text {
+    width: 10%;
+}
+
+#verygood-text {
+    width: 9%;
+}
+
+/*Target species box buttons*/
+.box-header>.box-tools {
+    width: 100%;
+    padding-left: 3%;
+}
+
+.box.box-solid>.box-header>.box-tools .btn {
+    border: 0;
+    box-shadow: none;
+    width: 100%;
+}
+
+.box.box-solid>.box-header .btn:hover, .box.box-solid>.box-header a:hover {
+    background: none;
+}
+
+i.fas.fa-plus, i.fas.fa-minus {
+    float: right;
+    padding-top: 4px;
+    color:white;
+}
+
+.box-body {
+    font-size: 17px;
 }
