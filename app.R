@@ -72,10 +72,11 @@ barrier_count <- function(barrier_type){
 #live statistics
 hab_conf <- sum(df$pscis_status == "HABITAT CONFIRMATION", na.rm = TRUE)
 assessed <- sum(is.na(df$pscis_assessment_date))
-total <- 526.95 #total km in HORS
+total <- 526.95 #total km in HORS that in the next iteration of the model will be a live function
 access <- round(total * (watershed_connectivity("ALL") / 100), 2)
 gain <- round(total - access, 2)
 gain_goal <- round((total*0.96) - access, 2)
+hab_connected <- gain_goal - 14.59
 dam_assessed_total <- barrier_severity("DAM")[2]
 
 #-------------------------------------------------------------------------------------------------------------------------
@@ -104,6 +105,10 @@ df_nonstr <- st_zm(non_stream_res)
 priority <- read.csv("data/priority_barriers.csv")
 priority$aggregated_crossings_id <- as.character(priority$aggregated_crossings_id)
 intermediate <- read.csv("data/inter_barriers.csv")
+
+#stats related to priority tables
+design <- sum(priority$next_steps == "Design")
+remediation <- sum(priority$next_steps == "Remediation")
 
 #misc. tables
 acknow <- read.csv("data/acknowledgements.csv")
@@ -162,7 +167,7 @@ ui <- fluidPage(
                                                    column(width=6,
                                                           infoBox("Number of barriers on Accessible Streams:", paste0(length(df$aggregated_crossings_id)), icon = icon("solid fa-ban"), fill = TRUE)),
                                                    column(width=6,
-                                                          infoBox("Amount of habitat that's been reconnected:", paste0(toString("?")), icon = icon("solid fa-water"), fill = TRUE)),
+                                                          infoBox("Amount of habitat that's been reconnected:", paste0(toString(hab_connected)), icon = icon("solid fa-water"), fill = TRUE)),
                                                    column(width=6,
                                                           infoBox("Amount of stream still blocked:", paste0(toString(gain), " km"), icon = icon("solid fa-road-barrier"), fill = TRUE)),
                                                    column(width=6,
@@ -178,9 +183,9 @@ ui <- fluidPage(
                                                    #column(width=3,
                                                    #valueBox(paste0(toString(gain), " km"), "Amount of Stream Blocked", icon = icon("solid fa-road-barrier"))),
                                                    column(width=3,
-                                                          valueBox(paste0(toString("?")), "Designs Created", icon = icon("solid fa-pen-ruler"))),
+                                                          valueBox(paste0(toString(design)), "Designs Created", icon = icon("solid fa-pen-ruler"))),
                                                    column(width=3,
-                                                   valueBox(paste0(toString("?")), "Remediations Completed", icon = icon("solid fa-person-digging")))
+                                                   valueBox(paste0(toString(remediation)), "Remediations Completed", icon = icon("solid fa-person-digging")))
                                                    #column(width=3,
                                                    #valueBox(paste0(length(df$aggregated_crossings_id)), "Barriers on Accessible Streams", icon = icon("solid fa-water")))
                                                    #column(width=3,
@@ -388,7 +393,7 @@ ui <- fluidPage(
                                                            h2("Data Dictionary"),
                                                            hr(),
                                                            tableOutput("dict"),
-                                                           h2("Priority Data Dictionary"),
+                                                           h2("Priority Data Dictionary TEST TO SEE IF IT WORKED"),
                                                            hr(),
                                                            tableOutput("pdict")
                                    ))#))

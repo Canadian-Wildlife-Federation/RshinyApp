@@ -1,0 +1,11 @@
+name: rshinyapp
+title:
+username:
+account: tomasmk
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 8192902
+bundleId: 6798600
+url: https://tomasmk.shinyapps.io/rshinyapp/
+when: 1675268683.72248
+lastSyncTime: 1675268683.7225
