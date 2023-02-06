@@ -6,4 +6,4 @@ setAccountInfo(name='tomasmk',
 			  secret='w1OIPuW7EyXXPkd36Ozjk7tMRCuMMdzXWLVQ2SCg')
 
 #deploy
-deployApp("./")
+deployApp(appFiles = "app.R")
