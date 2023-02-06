@@ -1,2 +1,3 @@
 # RshinyApp
 This is a repo for testing the HORS WCRP app building with R shiny instead of Dash.
+Everything should be good with the Dockerfile but who knows...
