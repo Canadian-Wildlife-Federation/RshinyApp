@@ -1,0 +1,20 @@
+on: [push, pull_request]
+
+name: deploy-shiny
+
+jobs:
+  deploy-shiny:
+    runs-on: macOS-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: r-lib/actions/setup-r@master
+      - name: Install dependencies
+        run: |
+          install.packages(c("remotes", "rsconnect"), type = "binary")
+          remotes::install_deps(dependencies = TRUE)
+        shell: Rscript {0}
+      - name: Push to shinyapps.io
+        run: |
+          rsconnect::setAccountInfo(name="tomasmk", token="139CE58825DBE28ECF5CD30B12B1874C", secret="w1OIPuW7EyXXPkd36Ozjk7tMRCuMMdzXWLVQ2SCg")
+          rsconnect::deployApp(appName = 'app')
+        shell: Rscript {0}
