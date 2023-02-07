@@ -4,6 +4,7 @@ RUN installGithub.r rstudio/leaflet.mapboxgl
 WORKDIR /home/rshinyApp
 COPY data data
 COPY www www
+COPY gomap.js gomap.js
 COPY app.R app.R
 COPY deploy.R deploy.R
 CMD Rscript deploy.R
