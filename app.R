@@ -105,11 +105,11 @@ df_nonstr <- st_zm(non_stream_res)
 priority <- read.csv("data/priority_barriers.csv")
 priority$aggregated_crossings_id <- as.character(priority$aggregated_crossings_id)
 intermediate <- read.csv("data/inter_barriers.csv")
-
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 #stats related to priority tables
 design <- sum(priority$next_steps == "Design")
 remediation <- sum(priority$next_steps == "Remediation")
-
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 #misc. tables
 acknow <- read.csv("data/acknowledgements.csv")
 datadict <- read.csv("data/datadict.csv")
@@ -180,35 +180,11 @@ ui <- fluidPage(
                                                           valueBox(assessed, "Assessments Done", icon = icon("solid fa-clipboard-check"))),
                                                    column(width=3,
                                                           valueBox(hab_conf, "Habitat Confirmations", icon = icon("solid fa-seedling"))),
-                                                   #column(width=3,
-                                                   #valueBox(paste0(toString(gain), " km"), "Amount of Stream Blocked", icon = icon("solid fa-road-barrier"))),
                                                    column(width=3,
                                                           valueBox(paste0(toString(design)), "Designs Created", icon = icon("solid fa-pen-ruler"))),
                                                    column(width=3,
                                                    valueBox(paste0(toString(remediation)), "Remediations Completed", icon = icon("solid fa-person-digging")))
-                                                   #column(width=3,
-                                                   #valueBox(paste0(length(df$aggregated_crossings_id)), "Barriers on Accessible Streams", icon = icon("solid fa-water")))
-                                                   #column(width=3,
-                                                   #valueBox(paste0(toString(gain_goal), " km"), "Habitat Remediation for Goals", icon = icon("solid fa-cart-plus")))
                                              ))),
-#                                            fluidRow(
-#                                              box(width = 12, title = "Work Completed to Date", style="font-weight:bolder;margin-top: 15px;text-align:center;font-size:15px;", id = 'constatus',
-#                                                 #actionButton("refresh", "Update Status"),
-#                                                   column(width=3,
-#                                                          valueBox(assessed, "Assessments Done", icon = icon("solid fa-clipboard-check"))),
-#                                                   column(width=3,
-#                                                          valueBox(hab_conf, "Habitat Confirmations", icon = icon("solid fa-seedling"))),
-#                                                   #column(width=3,
-#                                                          #valueBox(paste0(toString(gain), " km"), "Amount of Stream Blocked", icon = icon("solid fa-road-barrier"))),
-#                                                 column(width=3,
-#                                                        valueBox(paste0(toString("?")), "Designs Created", icon = icon("solid fa-pen-ruler"))),
-#                                                 column(width=3,
-#                                                        valueBox(paste0(toString("?")), "Remediations Completed", icon = icon("solid fa-person-digging")))
-#                                                 #column(width=3,
-#                                                          #valueBox(paste0(length(df$aggregated_crossings_id)), "Barriers on Accessible Streams", icon = icon("solid fa-water")))
-#                                                   #column(width=3,
-#                                                          #valueBox(paste0(toString(gain_goal), " km"), "Habitat Remediation for Goals", icon = icon("solid fa-cart-plus")))
-#                                                 )), 
 
                                           fluidRow(
                                              column(width=5,
@@ -306,16 +282,6 @@ ui <- fluidPage(
                                                     )
                                                   
                                            )),
-                                  
-                                  
-                                  
-                                  
-                                  #------------------------
-                                  # fluidRow(
-                                  #   plotOutput("attr_bar")
-                                  # ),
-                                    #barriers boxes
-
                                      
                                     )),
     ),
@@ -433,7 +399,7 @@ ui <- fluidPage(
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#popup formatting
+#popup formatting for all and intermediate tables
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 df$label <- paste0("<table style=\"border: 1px solid rgb(241, 241, 241)\">
                         <h4>ID: ", df$id, "</h4>
@@ -1235,5 +1201,8 @@ server <- function(input, output, session) {
 shinyApp(ui, server)
 
 
-#run app locally
+#run app locally if using a code editor other than RStudio
+###########################################################
+### MAKE SURE LINE BELOW IS COMMENTED OUT WHEN DEPLOYED ###
+###########################################################
 #runApp(app)
