@@ -1,4 +1,5 @@
 #add necessary libraries
+##################################################################################
 library(maps)
 library(leaflet)
 library(dplyr)
@@ -20,118 +21,120 @@ library(shinyWidgets)
 library(png)
 library(shinyBS)
 library(shinyjs)
+##################################################################################
 
 
 
 
+#API calls from bcfishpass
+# These API calls will load in the necessary layers from teh bcfishpass model. The only change needed to change the watershed is changing the following section of the API calls: watershed_group_code%20=%20%27HORS%27 --> watershed_group_code%20=%20%27WATERSHED%27.
+# Find wathershed codes in the BC watershed dictionary query https://a100.gov.bc.ca/pub/fidq/viewWatershedDictionary.do.
+##########################################################################################################################################################################################################################################################################################################################################
 
-#API call from bcfishpass
-#----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-crossings_res <- read_sf("https://features.hillcrestgeo.ca/bcfishpass/collections/bcfishpass.crossings/items.json?filter=watershed_group_code%20=%20%27HORS%27%20AND%20all_spawningrearing_km%3e0")
+#load in crossings as a spatial feature
+crossings_res <- read_sf("http://159.89.114.239:9002/collections/bcfishpass.crossings/items.json?filter=watershed_group_code%20=%20%27HORS%27%20AND%20all_spawningrearing_km%3e0")
+
+#add lat, lon, raw geoJSON to crossings layer (lat and lon are necessary for added functionality found further in the code)
 df <- crossings_res %>%
       dplyr::mutate(long = sf::st_coordinates(crossings_res)[, 1],
                     lat = sf::st_coordinates(crossings_res)[, 2]) %>%
-      dplyr::mutate(link = paste("https://features.hillcrestgeo.ca/bcfishpass/collections/bcfishpass.crossings/items.json?filter=watershed_group_code%20=%20%27HORS%27%20AND%20all_spawningrearing_km%3E0%20AND%20aggregated_crossings_id%20=%20",id,sep = ""))
+      dplyr::mutate(link = paste("http://159.89.114.239:9002/collections/bcfishpass.crossings/items.json?filter=watershed_group_code%20=%20%27HORS%27%20AND%20all_spawningrearing_km%3E0%20AND%20aggregated_crossings_id%20=%20",id,sep = ""))
 
+#boundary for the watershed
 boundary <- read_sf("https://features.hillcrestgeo.ca/fwa/collections/whse_basemapping.fwa_watershed_groups_poly/items.json?watershed_group_code=HORS")
 
+#stream networks
+acc_stream_res <- read_sf("http://159.89.114.239:9002/collections/bcfishpass.streams_salmon_vw/items.json?watershed_group_code=HORS")#%20AND%20access_model_ch_co_sk%20IS%20NOT%20NULL")
+df_str <- st_zm(acc_stream_res)
+#df_str[is.na(df_str)] <- "Not Named"
+df_null <- df_str[rowSums(is.na(df_str)) != 0, ]
+df_str <- na.omit(df_str)
 
+non_stream_res <- read_sf("http://159.89.114.239:9002/collections/bcfishpass.streams_salmon_vw/items.json?watershed_group_code=HORS")#%20AND%20access_model_ch_co_sk%20IS%20NOT%20NULL")
+df_nonstr <- st_zm(non_stream_res)
 
-#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
-#live reporting functions
+##########################################################################################################################################################################################################################################################################################################################################
+
+#Define reporting functions
+# Reporting functions for WCRP based reports. The outputs would include information such as habitat blocked by barrier type. As with the API calls, change the following part of the call to reflect the watershed you wish to look at: watershed_group_code=HORS. 
+##########################################################################################################################################################################################################################################################################################################################################
 watershed_connectivity <- function(habitat_type){
-  request <- paste('https://features.hillcrestgeo.ca/bcfishpass/functions/postgisftw.wcrp_watershed_connectivity_status/items.json?watershed_group_code=HORS&barrier_type=',habitat_type, sep = "")
+  request <- paste('http://159.89.114.239:9002/functions/postgisftw.wcrp_watershed_connectivity_status/items.json?watershed_group_code=HORS&barrier_type=',habitat_type, sep = "")
   res <- GET(request)
   data <- fromJSON(rawToChar(res$content))
   return(data$connectivity_status)
 }
 
 barrier_severity <- function(barrier_type){
-  request <- paste('https://features.hillcrestgeo.ca/bcfishpass/functions/postgisftw.wcrp_barrier_severity/items.json?watershed_group_code=HORS&barrier_type=',barrier_type, sep = "")
+  request <- paste('http://159.89.114.239:9002/functions/postgisftw.wcrp_barrier_severity/items.json?watershed_group_code=HORS&barrier_type=',barrier_type, sep = "")
   res <- GET(request)
   data <- fromJSON(rawToChar(res$content))
   return(c(data$n_assessed_barrier, data$n_assess_total, data$pct_assessed_barrier))
 }
 
 barrier_extent <- function(barrier_type){
-  request <- paste('https://features.hillcrestgeo.ca/bcfishpass/functions/postgisftw.wcrp_barrier_extent/items.json?watershed_group_code=HORS&barrier_type=',barrier_type, sep = "")
+  request <- paste('http://159.89.114.239:9002/functions/postgisftw.wcrp_barrier_extent/items.json?watershed_group_code=HORS&barrier_type=',barrier_type, sep = "")
   res <- GET(request)
   data <- fromJSON(rawToChar(res$content))
   return(c(data$all_habitat_blocked_km, data$all_habitat_blocked_pct))
 }
 
 barrier_count <- function(barrier_type){
-  request <- paste('https://features.hillcrestgeo.ca/bcfishpass/functions/postgisftw.wcrp_barrier_count/items.json?watershed_group_code=HORS&barrier_type=',barrier_type, sep = "")
+  request <- paste('http://159.89.114.239:9002/functions/postgisftw.wcrp_barrier_count/items.json?watershed_group_code=HORS&barrier_type=',barrier_type, sep = "")
   res <- GET(request)
   data <- fromJSON(rawToChar(res$content))
   return(c(data$n_passable, data$n_barrier, data$n_potential, data$n_unknown))
 }
 
-#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+###########################################################################################################################################################################################################################################################################################################################################
 
-#live statistics
-hab_conf <- sum(df$pscis_status == "HABITAT CONFIRMATION", na.rm = TRUE)
-assessed <- sum(is.na(df$pscis_assessment_date))
+#Additional statistics for miscillaneous app features
+##########################################################################################################################################################################################################################################################################################################################################
+hab_conf <- sum(df$pscis_status == "HABITAT CONFIRMATION", na.rm = TRUE) #number of crossings where PSCIS has confirmed fish habitat
+assessed <- sum(is.na(df$pscis_assessment_date)) #number of assessed crossings
 total <- 526.95 #total km in HORS that in the next iteration of the model will be a live function
-access <- round(total * (watershed_connectivity("ALL") / 100), 2)
-gain <- round(total - access, 2)
-gain_goal <- round((total*0.96) - access, 2)
-hab_connected <- gain_goal - 14.59
-dam_assessed_total <- barrier_severity("DAM")[2]
+access <- round(total * (watershed_connectivity("ALL") / 100), 2) #accessible habitat
+gain <- round(total - access, 2) #current habitat gain 
+gain_goal <- round((total*0.96) - access, 2) #goal for habitat gain
+hab_connected <- gain_goal - 14.59 #current amount of habitat that has been reconnected 
+dam_assessed_total <- barrier_severity("DAM")[2] #number of assessed dams
 
-#-------------------------------------------------------------------------------------------------------------------------
-
-#stream vector tile reading (just geojson for now)
-#-----------------------------------------------------------------------------
-
-acc_stream_res <- read_sf("https://features.hillcrestgeo.ca/bcfishpass/collections/bcfishpass.streams/items.json?properties=gnis_name&filter=watershed_group_code%20=%20%27HORS%27%20AND%20access_model_ch_co_sk%20IS%20NOT%20NULL")
-df_str <- st_zm(acc_stream_res)
-#df_str[is.na(df_str)] <- "Not Named"
-df_null <- df_str[rowSums(is.na(df_str)) != 0, ]
-df_str <- na.omit(df_str)
-
-non_stream_res <- read_sf("https://features.hillcrestgeo.ca/bcfishpass/collections/bcfishpass.streams/items.json?properties=gnis_name&filter=watershed_group_code%20=%20%27HORS%27%20AND%20access_model_ch_co_sk%20IS%20NULL")
-df_nonstr <- st_zm(non_stream_res)
-
-# %>%
-#       dplyr::mutate(lat = sf::st_coordinates(acc_stream_res)[,2],
-#                     lon = sf::st_coordinates(acc_stream_res)[,1])
-
-#-----------------------------------------------------------------------------
+###########################################################################################################################################################################################################################################################################################################################################
 
 
-#priority and intermediate barrier list data frame to be used for filtering of ids server side
-#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
-priority <- read.csv("data/priority_barriers.csv")
-priority$aggregated_crossings_id <- as.character(priority$aggregated_crossings_id)
-intermediate <- read.csv("data/inter_barriers.csv")
+#priority and intermediate barrier list data frames to be used for filtering of ids server side
+###########################################################################################################################################################################################################################################################################################################################################
+priority <- read.csv("data/priority_barriers.csv") #priority list 
+priority$aggregated_crossings_id <- as.character(priority$aggregated_crossings_id) #convert id to character to be more easily filtered
+intermediate <- read.csv("data/inter_barriers.csv") #intermediate list
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 #stats related to priority tables
-design <- sum(priority$next_steps == "Design")
-remediation <- sum(priority$next_steps == "Remediation")
+design <- sum(priority$next_steps == "Design") #number of priority crossings with designs in place
+remediation <- sum(priority$next_steps == "Remediation") #priority crossings that have plan to be remediated
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 #misc. tables
-acknow <- read.csv("data/acknowledgements.csv")
-datadict <- read.csv("data/datadict.csv")
-priordict <- read.csv("data/priority_dict.csv")
+acknow <- read.csv("data/acknowledgements.csv") #acknowledgments to the authors of the data and prioritization process
+datadict <- read.csv("data/datadict.csv") #key data dictionary for bcfishpass.crossings layers
+priordict <- read.csv("data/priority_dict.csv") #priority crossings table dictionary
+###########################################################################################################################################################################################################################################################################################################################################
 
-#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #marker color functions and stream labels
-#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
-col <- colorFactor(c("#d52a2a", "#32cd32", "#ffb400", "#965ab3"), domain = c("PASSABLE", "BARRIER", "POTENTIAL", "UNKNOWN"))
+###########################################################################################################################################################################################################################################################################################################################################
+col <- colorFactor(c("#d52a2a", "#32cd32", "#ffb400", "#965ab3"), domain = c("PASSABLE", "BARRIER", "POTENTIAL", "UNKNOWN")) #colours for map
+labs <- as.list(df_str$gnis_name) #stream labels for map
+###########################################################################################################################################################################################################################################################################################################################################
 
-labs <- as.list(df_str$gnis_name)
-#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+#mapbox options for basemaps
+###########################################################################################################################################################################################################################################################################################################################################
+options(mapbox.accessToken = "pk.eyJ1IjoidG9tYXMtbWsiLCJhIjoiY2w5b2JjNnl0MGR2YjN1bXpjenUwa2hnZyJ9.s21BqE7q2yEgDKFE5zNp_g", mapbox.antialias = TRUE) #acces token for mapbox basemaps
+###########################################################################################################################################################################################################################################################################################################################################
 
-#mapbox options
-#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
-options(mapbox.accessToken = "pk.eyJ1IjoidG9tYXMtbWsiLCJhIjoiY2w5b2JjNnl0MGR2YjN1bXpjenUwa2hnZyJ9.s21BqE7q2yEgDKFE5zNp_g", mapbox.antialias = TRUE)
-#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
-#addResourcePath("www", "C:/CABD/GitHub/Canadian-Wildlife-Federation/BC_WRCP/RshinyApp/www")
 #main app page
-#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+###########################################################################################################################################################################################################################################################################################################################################
+
 ui <- fluidPage(
+  #include css styling to app
   includeCSS("www/simple_app_styling.css"),
   #include JS function
   includeScript("gomap.js"),
@@ -147,7 +150,7 @@ ui <- fluidPage(
                                            fluidRow(
                                              box(width = 12, title = "Status of Connectivity", tags$div("This measure of connectivity is based on the percent of total linear habitat available for anadromous salmon in the Horsefly River watershed.", style="font-weight:bold;margin-top: 15px;text-align:center;font-size:15px;font-style:italic"), 
                                                  id = 'constatus',
-                                                 #h3("Watershed Overview"),
+                                                 #progress bar generation
                                                  shinyWidgets::progressBar(id = "connect",
                                                                        value = watershed_connectivity("ALL"),
                                                                        display_pct = TRUE,
@@ -163,6 +166,7 @@ ui <- fluidPage(
                                                  br(),
                                                  tags$div(h3("Connectivity Overview"),align="center"),
                                                  hr(),
+                                                 #key watershed fact boxes
                                                  fluidRow(id="statattr",
                                                    column(width=6,
                                                           infoBox("Number of barriers on Accessible Streams:", paste0(length(df$aggregated_crossings_id)), icon = icon("solid fa-ban"), fill = TRUE)),
@@ -173,6 +177,7 @@ ui <- fluidPage(
                                                    column(width=6,
                                                           infoBox("Amount of habitat left to reconnect to connectivity goals:", paste0(toString(gain_goal), " km"), icon = icon("solid fa-house-medical-circle-check"), fill = TRUE)),
                                                  ),
+                                                 #completed work in the watershed
                                                  tags$div(h3("Work Completed to Date"),align="center"),
                                                  hr(),
                                                  fluidRow(
@@ -190,6 +195,7 @@ ui <- fluidPage(
                                              column(width=5,
                                                 fluidRow(
                                                   box(width = 12, title = "Barrier Types",
+                                                  #Barrier type box
                                                     fluidRow(
                                                       selectInput("options", "Select a barrier type:", c("Small Dams (<3 m height)" = "dam", "Road-stream Crossings" = "road", "Trail-stream crossings" = "trail", "Lateral Barriers" = "lateral", "Natural Barriers" = "natural"))
                                                       #bsTooltip("options", "Select your barrier type of interest from the dropdown.", placement = "top", trigger = "hover", options = NULL)
@@ -207,7 +213,7 @@ ui <- fluidPage(
                                                              h2("Summary of Passability")
                                                     ),
                                                     fluidRow(class = "rowhide",
-                                                             plotOutput("attr_pie")
+                                                             plotOutput("attr_pie") #find functionality of the pie chart lower in the code
                                                     )
                                                     )
                                                     )
@@ -400,7 +406,8 @@ ui <- fluidPage(
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #popup formatting for all and intermediate tables
-#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+###########################################################################################################################################################################################################################################################################################################################################
+
 df$label <- paste0("<table style=\"border: 1px solid rgb(241, 241, 241)\">
                         <h4>ID: ", df$id, "</h4>
                         <br>
@@ -481,10 +488,12 @@ df$label <- paste0("<table style=\"border: 1px solid rgb(241, 241, 241)\">
                           <th class=\"popup\"><a href =",  df$link, " target='_blank'>Data Sheet</a></th>
                         <tr>
                       </table>")
-#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+###########################################################################################################################################################################################################################################################################################################################################
+
 
 #server rendering
-#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+###########################################################################################################################################################################################################################################################################################################################################
+
 server <- function(input, output, session) {
 
   
@@ -517,7 +526,8 @@ server <- function(input, output, session) {
           barrier_status %in% input$variable
         )
         df <- left_join(df, priority, by = c("id" = "aggregated_crossings_id"))
-        df<- df %>%  mutate(label = paste0("<table style=\"border: 1px solid black\">
+        #below is the table formatting for the priority barriers
+        df<- df %>%  mutate(label = paste0("<table style=\"border: 1px solid black\"> 
                         <h4>ID: ", df$aggregated_crossings_id, "</h4>
                         <br>
                         <tr class=\"popup\">
@@ -570,6 +580,7 @@ server <- function(input, output, session) {
   })
 
   #leaflet map rendering
+  ###########################################################################################################################################################################################################################################################################################################################################
   output$mymap <- renderLeaflet({
 
     
@@ -577,8 +588,9 @@ server <- function(input, output, session) {
     addMapPane(name = "polygons", zIndex = 410) %>%
     addMapPane(name = "maplabels", zIndex = 420) %>% # higher zIndex rendered on top
       addTiles() %>%
-      addMapboxGL(style = "mapbox://styles/mapbox/streets-v9", group = "Mapbox", options = leafletOptions(pane = "polygons")) %>%
-      addMapboxGL(style = "mapbox://styles/mapbox/satellite-v9", group = "Mapbox<br>Satellite", options = leafletOptions(pane = "polygons")) %>%
+      addMapboxGL(style = "mapbox://styles/mapbox/streets-v9", group = "Mapbox", options = leafletOptions(pane = "polygons")) %>% #topo basemap
+      addMapboxGL(style = "mapbox://styles/mapbox/satellite-v9", group = "Mapbox<br>Satellite", options = leafletOptions(pane = "polygons")) %>% #imagery basemap
+      #PASSABLE markers
       addCircleMarkers(data = y() %>%
 
                         dplyr::filter(
@@ -586,7 +598,7 @@ server <- function(input, output, session) {
                         ),
                        lat = ~lat,
                        lng = ~long,
-
+                        #marker clustering options
                        clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
                           var childCount = cluster.getChildCount(); 
                           var c = ' marker-custom-';  
@@ -608,6 +620,7 @@ server <- function(input, output, session) {
                        fillOpacity = 0.90,
                        options = leafletOptions(pane = "maplabels")
       ) %>%
+      #BARRIER markers
       addCircleMarkers(data = y() %>%
 
                         dplyr::filter(
@@ -637,6 +650,7 @@ server <- function(input, output, session) {
                        fillOpacity = 0.90,
                        options = leafletOptions(pane = "maplabels")
       ) %>%
+      #POTENTIAL markers
       addCircleMarkers(data = y() %>%
                         dplyr::filter(
                           barrier_status == "POTENTIAL"
@@ -665,6 +679,7 @@ server <- function(input, output, session) {
                        fillOpacity = 0.90,
                        options = leafletOptions(pane = "maplabels")
       ) %>%
+      #UNKNOWN markers
       addCircleMarkers(data = y() %>%
                         dplyr::filter(
                           barrier_status == "UNKNOWN"
@@ -693,7 +708,8 @@ server <- function(input, output, session) {
                        fillOpacity = 0.90,
                        options = leafletOptions(pane = "maplabels")
                        ) %>%
-      addPolylines(data = df_str, color = "cadetblue", weight = 1.5, opacity = 1, label = ~paste0(gnis_name),
+      #add strem network
+      addPolylines(data = df_null, color = "cadetblue", weight = 1.5, opacity = 1, label = ~paste0(gnis_name),
       labelOptions = labelOptions(
         style = list(
           "color" = "black",
@@ -701,7 +717,7 @@ server <- function(input, output, session) {
           "font-size" = "15px",
           "border-color" = "rgba(0,0,0,0.5)"
       )),  group = "Streams", options = leafletOptions(pane = "maplabels")) %>%
-      addPolylines(data = df_null, color = "cadetblue", weight = 1.5, opacity = 1,  group = "Streams", options = leafletOptions(pane = "maplabels")) %>%
+      #addPolylines(data = df_null, color = "cadetblue", weight = 1.5, opacity = 1,  group = "Streams", options = leafletOptions(pane = "maplabels")) %>%
       #addPolylines(data = df_nonstr, color = "grey", group = "Non-Streams") %>%
       addPolygons(data = boundary, stroke = TRUE, fillOpacity = 0, smoothFactor = 0.5,
     color = "red", weight = 2, opacity = 1, group = "Watershed<br>Boundary", fillColor = NA, options = leafletOptions(pane = "polygons")) %>%
@@ -893,7 +909,7 @@ server <- function(input, output, session) {
                        fillOpacity = 0.90,
                        options = leafletOptions(pane = "maplabels")
       ) %>%
-      addPolylines(data = df_str, color = "cadetblue", weight = 1.5, opacity = 1, label = ~paste0(gnis_name),
+      addPolylines(data = df_null, color = "cadetblue", weight = 1.5, opacity = 1, label = ~paste0(gnis_name),
                    labelOptions = labelOptions(
                      style = list(
                        "color" = "black",
@@ -1197,12 +1213,11 @@ server <- function(input, output, session) {
 }
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 # finally, we need to call the shinyapp function with the ui and server as arguments
-#app <- 
-shinyApp(ui, server)
+app <- shinyApp(ui, server)
 
 
 #run app locally if using a code editor other than RStudio
 ###########################################################
 ### MAKE SURE LINE BELOW IS COMMENTED OUT WHEN DEPLOYED ###
 ###########################################################
-#runApp(app)
+runApp(app)
