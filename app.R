@@ -1213,11 +1213,11 @@ server <- function(input, output, session) {
 }
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 # finally, we need to call the shinyapp function with the ui and server as arguments
-app <- shinyApp(ui, server)
+shinyApp(ui, server)
 
 
 #run app locally if using a code editor other than RStudio
 ###########################################################
 ### MAKE SURE LINE BELOW IS COMMENTED OUT WHEN DEPLOYED ###
 ###########################################################
-runApp(app)
+#runApp(app)
