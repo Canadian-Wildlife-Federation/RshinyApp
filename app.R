@@ -59,31 +59,31 @@ df_nonstr <- st_zm(non_stream_res)
 # Reporting functions for WCRP based reports. The outputs would include information such as habitat blocked by barrier type. As with the API calls, change the following part of the call to reflect the watershed you wish to look at: watershed_group_code=HORS. 
 ##########################################################################################################################################################################################################################################################################################################################################
 watershed_connectivity <- function(habitat_type){
-  request <- paste('http://159.89.114.239:9002/functions/postgisftw.wcrp_watershed_connectivity_status/items.json?watershed_group_code=HORS&barrier_type=',habitat_type, sep = "")
+  request <- paste('http://159.89.114.239:9002/functions/postgisftw.wcrp_watershed_connectivity_status/items.json?watershed_group_code=HORS&barrier_type=',habitat_type, sep = "") #change watershed_group_code=HORS to another watershed
   res <- GET(request)
   data <- fromJSON(rawToChar(res$content))
-  return(data$connectivity_status)
+  return(data$connectivity_status) #number returned for connectivity status from bcfishpass model
 }
 
 barrier_severity <- function(barrier_type){
-  request <- paste('http://159.89.114.239:9002/functions/postgisftw.wcrp_barrier_severity/items.json?watershed_group_code=HORS&barrier_type=',barrier_type, sep = "")
+  request <- paste('http://159.89.114.239:9002/functions/postgisftw.wcrp_barrier_severity/items.json?watershed_group_code=HORS&barrier_type=',barrier_type, sep = "")#change watershed_group_code=HORS to another watershed
   res <- GET(request)
   data <- fromJSON(rawToChar(res$content))
-  return(c(data$n_assessed_barrier, data$n_assess_total, data$pct_assessed_barrier))
+  return(c(data$n_assessed_barrier, data$n_assess_total, data$pct_assessed_barrier))#number returned for specifc barrier type from bcfishpass model
 }
 
 barrier_extent <- function(barrier_type){
-  request <- paste('http://159.89.114.239:9002/functions/postgisftw.wcrp_barrier_extent/items.json?watershed_group_code=HORS&barrier_type=',barrier_type, sep = "")
+  request <- paste('http://159.89.114.239:9002/functions/postgisftw.wcrp_barrier_extent/items.json?watershed_group_code=HORS&barrier_type=',barrier_type, sep = "")#change watershed_group_code=HORS to another watershed
   res <- GET(request)
   data <- fromJSON(rawToChar(res$content))
-  return(c(data$all_habitat_blocked_km, data$all_habitat_blocked_pct))
+  return(c(data$all_habitat_blocked_km, data$all_habitat_blocked_pct)) #number returned for habitat blocked from bcfishpass model
 }
 
 barrier_count <- function(barrier_type){
-  request <- paste('http://159.89.114.239:9002/functions/postgisftw.wcrp_barrier_count/items.json?watershed_group_code=HORS&barrier_type=',barrier_type, sep = "")
+  request <- paste('http://159.89.114.239:9002/functions/postgisftw.wcrp_barrier_count/items.json?watershed_group_code=HORS&barrier_type=',barrier_type, sep = "")#change watershed_group_code=HORS to another watershed
   res <- GET(request)
   data <- fromJSON(rawToChar(res$content))
-  return(c(data$n_passable, data$n_barrier, data$n_potential, data$n_unknown))
+  return(c(data$n_passable, data$n_barrier, data$n_potential, data$n_unknown)) #number returned for passability status for barrier type from bcfishpass model
 }
 
 ###########################################################################################################################################################################################################################################################################################################################################
@@ -136,7 +136,7 @@ options(mapbox.accessToken = "pk.eyJ1IjoidG9tYXMtbWsiLCJhIjoiY2w5b2JjNnl0MGR2YjN
 ui <- fluidPage(
   #include css styling to app
   includeCSS("www/simple_app_styling.css"),
-  #include JS function
+  #include JS function for zooming from table to map
   includeScript("gomap.js"),
   useShinyjs(),
   #create top navbar
@@ -264,7 +264,7 @@ ui <- fluidPage(
                                                           closable = FALSE,
                                                           collapsed = TRUE
                                                         )))),
-                                                    
+                                                    # First Naiton partners will change based on watershed
                                                     fluidRow(
                                                       box(width = 12, title = "First Nations Partners", id = "species",
                                                           fluidRow(
@@ -292,7 +292,7 @@ ui <- fluidPage(
                                     )),
     ),
     
-    tabPanel("Interactive Map (sidebyside)", 
+    tabPanel("Interactive Map", 
              tabsetPanel(id = "alltab",
                          tabPanel("", value = "Tab_1", 
                                    #add content to tab panel
@@ -314,27 +314,7 @@ ui <- fluidPage(
                           )
              )
     ),
-    
-    tabPanel("Interactive Map (stacked)", 
-             tabsetPanel(id = "alltabside",
-                         tabPanel("", value = "Tab_1_side", 
-                                  #add content to tab panel
-                                  fluidRow(id = "row1",
-                                           selectInput("priority", "Barrier List", c("All" = "All", "Priority" = "Priority", "Intermediate" = "Intermediate"), selected = "All"),
-                                           bsTooltip("priority", "Here is some text with your instructions", placement = "top", trigger = "hover", options = NULL),
-                                           selectInput("variable", "Barrier Status", c("Passable" = "PASSABLE", "Barrier" = "BARRIER","Potential"="POTENTIAL","Unknown"="UNKNOWN"), selected = c("PASSABLE", "BARRIER","POTENTIAL","UNKNOWN"), multiple = TRUE),
-                                           bsTooltip("variable", "Here is some text with your instructions", placement = "top", trigger = "hover", options = NULL)
-                                  ),
-                                  tags$hr(style="border-color: transparent;"),
-                                  fluidRow(id = "row2",
-                                           leafletOutput("mymap2"),
-                                           br(),
-                                           dataTableOutput("mytable2")
-                                  )
-                         )
-             )
-    ),
-    
+
     tabPanel("Background Information",
               tabsetPanel(id = "alltab",
                           tabPanel("", value = "Tab_3", 
@@ -405,7 +385,7 @@ ui <- fluidPage(
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#popup formatting for all and intermediate tables
+#popup formatting for "all crossings" and "intermediate crossings" tables (intermdeiate and all in the dropdown)
 ###########################################################################################################################################################################################################################################################################################################################################
 
 df$label <- paste0("<table style=\"border: 1px solid rgb(241, 241, 241)\">
@@ -526,7 +506,7 @@ server <- function(input, output, session) {
           barrier_status %in% input$variable
         )
         df <- left_join(df, priority, by = c("id" = "aggregated_crossings_id"))
-        #below is the table formatting for the priority barriers
+        #below is the table formatting for the priority barriers (priority in the dropdown)
         df<- df %>%  mutate(label = paste0("<table style=\"border: 1px solid black\"> 
                         <h4>ID: ", df$aggregated_crossings_id, "</h4>
                         <br>
@@ -598,7 +578,7 @@ server <- function(input, output, session) {
                         ),
                        lat = ~lat,
                        lng = ~long,
-                        #marker clustering options
+                        #marker clustering options for groups of markers
                        clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
                           var childCount = cluster.getChildCount(); 
                           var c = ' marker-custom-';  
@@ -708,7 +688,7 @@ server <- function(input, output, session) {
                        fillOpacity = 0.90,
                        options = leafletOptions(pane = "maplabels")
                        ) %>%
-      #add strem network
+      #add stream network
       addPolylines(data = df_null, color = "cadetblue", weight = 1.5, opacity = 1, label = ~paste0(gnis_name),
       labelOptions = labelOptions(
         style = list(
@@ -723,7 +703,7 @@ server <- function(input, output, session) {
     color = "red", weight = 2, opacity = 1, group = "Watershed<br>Boundary", fillColor = NA, options = leafletOptions(pane = "polygons")) %>%
       addEasyButton(easyButton(
         icon = "fa-home", title = "Deafult View",
-        onClick = JS("function(btn, map){ map.setView([52.280408375,	-121.005149476], 10); }"))) %>%
+        onClick = JS("function(btn, map){ map.setView([52.280408375,	-121.005149476], 10); }"))) %>% #set home view
       addLegend("topright", pal = col, values = df$barrier_status) %>%
       # Layers control
       addLayersControl(
@@ -733,18 +713,6 @@ server <- function(input, output, session) {
       )
   })
 
-  #zoom_level = JS("function(map){ return map.getZoom(); }")
-
-  #zoom level for tooltip
-#   observe({
-#     if (is.null(input$mymap_zoom))
-#       return()
-#     isolate({
-#       leafletProxy(
-#         mapId = "mymap") %>%
-#         addPolylines(data = df_str, color = "blue", opacity = 1,  label = if(input$mymap_zoom < 8) gnis_name,  group = "Streams", options = leafletOptions(pane = "maplabels"))
-#     })
-# })
 
   # reference for gomap.js function
   observe({
@@ -762,10 +730,8 @@ server <- function(input, output, session) {
   #data table rendering
   output$mytable <- renderDataTable({
 
+    #data table for map
     dt <- y()[, c("id", "pscis_stream_name", "barrier_status", "crossing_feature_type", "lat", "long")] %>%
-              #  dplyr::filter(
-              #   barrier_status %in% input$variable
-              # ) %>%
               st_drop_geometry() %>%
               mutate(Location = paste('<a class="go-map" href="" data-lat="', lat, '" data-long="', long, '"><i class="fa fa-crosshairs"></i></a>', sep=""))
 
@@ -780,242 +746,6 @@ server <- function(input, output, session) {
       )
 
     })
-  
-  ###################################################################################################
-  ##########################DELETE DUPE CODE BELOW ONCE LAYOUT IS DECIDED############################
-  ###################################################################################################
-  
-  #leaflet map rendering
-  output$mymap2 <- renderLeaflet({
-    
-    
-    leaflet() %>%
-      addMapPane(name = "polygons", zIndex = 410) %>%
-      addMapPane(name = "maplabels", zIndex = 420) %>% # higher zIndex rendered on top
-      addTiles() %>%
-      addMapboxGL(style = "mapbox://styles/mapbox/streets-v9", group = "Mapbox", options = leafletOptions(pane = "polygons")) %>%
-      addMapboxGL(style = "mapbox://styles/mapbox/satellite-v9", group = "Mapbox<br>Satellite", options = leafletOptions(pane = "polygons")) %>%
-      addCircleMarkers(data = y() %>%
-                         
-                         dplyr::filter(
-                           barrier_status == "PASSABLE"
-                         ),
-                       lat = ~lat,
-                       lng = ~long,
-                       
-                       clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
-                          var childCount = cluster.getChildCount(); 
-                          var c = ' marker-custom-';  
-                          if (childCount < 5) {  
-                            c += 'large';  
-                          } else if (childCount < 50) {  
-                            c += 'medium';  
-                          } else { 
-                            c += 'small';  
-                          }    
-                          return new L.DivIcon({ html: '<div><span>' + childCount + '</span></div>', className: 'marker-cluster' + c, iconSize: new L.Point(40, 40) });
-
-                        }")),
-                       color = "white",
-                       fillColor = ~col(barrier_status),
-                       popup = ~label,
-                       group = "Passable",
-                       opacity = 1,
-                       fillOpacity = 0.90,
-                       options = leafletOptions(pane = "maplabels")
-      ) %>%
-      addCircleMarkers(data = y() %>%
-                         
-                         dplyr::filter(
-                           barrier_status == "BARRIER"
-                         ),
-                       lat = ~lat,
-                       lng = ~long,
-                       
-                       clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
-    var childCount = cluster.getChildCount(); 
-    var c = ' marker-custom-';  
-    if (childCount < 5) {  
-      c += 'large';  
-    } else if (childCount < 50) {  
-      c += 'medium';  
-    } else { 
-      c += 'small';  
-    }    
-    return new L.DivIcon({ html: '<div><span>' + childCount + '</span></div>', className: 'marker-cluster' + c, iconSize: new L.Point(40, 40) });
-
-  }")),
-                       color = "white",
-                       fillColor = ~col(barrier_status),
-                       popup = ~label,
-                       group = "Barrier",
-                       opacity = 1,
-                       fillOpacity = 0.90,
-                       options = leafletOptions(pane = "maplabels")
-      ) %>%
-      addCircleMarkers(data = y() %>%
-                         dplyr::filter(
-                           barrier_status == "POTENTIAL"
-                         ),
-                       lat = ~lat,
-                       lng = ~long,
-                       
-                       clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
-    var childCount = cluster.getChildCount(); 
-    var c = ' marker-custom-';  
-    if (childCount < 5) {  
-      c += 'large';  
-    } else if (childCount < 50) {  
-      c += 'medium';  
-    } else { 
-      c += 'small';  
-    }    
-    return new L.DivIcon({ html: '<div><span>' + childCount + '</span></div>', className: 'marker-cluster' + c, iconSize: new L.Point(40, 40) });
-
-  }")),
-                       color = "white",
-                       fillColor = ~col(barrier_status),
-                       popup = ~label,
-                       group = "Potential",
-                       opacity = 1,
-                       fillOpacity = 0.90,
-                       options = leafletOptions(pane = "maplabels")
-      ) %>%
-      addCircleMarkers(data = y() %>%
-                         dplyr::filter(
-                           barrier_status == "UNKNOWN"
-                         ),
-                       lat = ~lat,
-                       lng = ~long,
-                       
-                       clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
-    var childCount = cluster.getChildCount(); 
-    var c = ' marker-custom-';  
-    if (childCount < 5) {  
-      c += 'large';  
-    } else if (childCount < 50) {  
-      c += 'medium';  
-    } else { 
-      c += 'small';  
-    }    
-    return new L.DivIcon({ html: '<div><span>' + childCount + '</span></div>', className: 'marker-cluster' + c, iconSize: new L.Point(40, 40) });
-
-  }")),
-                       color = "white",
-                       fillColor = ~col(barrier_status),
-                       popup = ~label,
-                       group = "Unknown",
-                       opacity = 1,
-                       fillOpacity = 0.90,
-                       options = leafletOptions(pane = "maplabels")
-      ) %>%
-      addPolylines(data = df_null, color = "cadetblue", weight = 1.5, opacity = 1, label = ~paste0(gnis_name),
-                   labelOptions = labelOptions(
-                     style = list(
-                       "color" = "black",
-                       "box-shadow" = "3px 3px rgba(0,0,0,0.25)",
-                       "font-size" = "15px",
-                       "border-color" = "rgba(0,0,0,0.5)"
-                     )),  group = "Streams", options = leafletOptions(pane = "maplabels")) %>%
-      addPolylines(data = df_null, color = "cadetblue", weight = 1.5, opacity = 1,  group = "Streams", options = leafletOptions(pane = "maplabels")) %>%
-      #addPolylines(data = df_nonstr, color = "grey", group = "Non-Streams") %>%
-      addPolygons(data = boundary, stroke = TRUE, fillOpacity = 0, smoothFactor = 0.5,
-                  color = "red", weight = 2, opacity = 1, group = "Watershed<br>Boundary", fillColor = NA, options = leafletOptions(pane = "polygons")) %>%
-      addEasyButton(easyButton(
-        icon = "fa-home", title = "Deafult View",
-        onClick = JS("function(btn, map){ map.setView([52.280408375,	-121.005149476], 10); }"))) %>%
-      addLegend("topright", pal = col, values = df$barrier_status) %>%
-      # Layers control
-      addLayersControl(
-        baseGroups = c("Mapbox", "Mapbox<br>Satellite"),
-        overlayGroups = c("Streams", "Watershed<br>Boundary"),
-        options = layersControlOptions(collapsed = FALSE)
-      )
-  })
-  
-  #zoom_level = JS("function(map){ return map.getZoom(); }")
-  
-  #zoom level for tooltip
-  #   observe({
-  #     if (is.null(input$mymap_zoom))
-  #       return()
-  #     isolate({
-  #       leafletProxy(
-  #         mapId = "mymap") %>%
-  #         addPolylines(data = df_str, color = "blue", opacity = 1,  label = if(input$mymap_zoom < 8) gnis_name,  group = "Streams", options = leafletOptions(pane = "maplabels"))
-  #     })
-  # })
-  
-  # reference for gomap.js function
-  observe({
-    if (is.null(input$goto))
-      return()
-    isolate({
-      map <- leafletProxy("mymap")
-      dist <- 0.0005
-      lat <- input$goto$lat
-      long <- input$goto$lng
-      map %>% fitBounds(long - dist, lat - dist, long + dist, lat + dist)
-    })
-  })
-  
-  #data table rendering
-  output$mytable2 <- renderDataTable({
-    
-    dt <- y()[, c("id", "pscis_stream_name", "barrier_status", "crossing_feature_type", "lat", "long")] %>%
-      #  dplyr::filter(
-      #   barrier_status %in% input$variable
-      # ) %>%
-      st_drop_geometry() %>%
-      mutate(Location = paste('<a class="go-map" href="" data-lat="', lat, '" data-long="', long, '"><i class="fa fa-crosshairs"></i></a>', sep=""))
-    
-    
-    action <- DT::dataTableAjax(session, dt, outputId = "mytable")
-    
-    datatable(dt, options = list(scrollY = 'calc(100vh - 350px)', ajax = list(url = action), columnDefs = list(list(visible=FALSE, targets=c(5,6)))),
-              colnames = c("ID", "Stream Name", "Barrier Status", "Potenital Crossing Type", "Latitude", "Longitude", "Location"),
-              escape = FALSE,
-              selection = "none",
-              style = "bootstrap"
-    )
-    
-  })
-  ##############################################################################################
-  ##############################################################################################
-  ##############################################################################################
-  
-  # Stats Tab panel ---------------------------------------------------------------------
-  # output$attr_bar <- renderPlot(width = "auto",
-  # height = "auto",
-  # res = 150,
-  # {
-  #   if (input$options == "barr"){
-  #     df1 <- df %>%
-  #           count(barrier_status) %>%
-  #           mutate(Perc = (n/sum(n)) * 100) %>%
-  #           mutate(Freq = n/sum(n))
-
-  #     ggplot(df1, aes(x=barrier_status, y=Perc, fill=barrier_status)) +
-  #     geom_bar(stat="identity") + 
-  #     geom_text(aes(label=scales::percent(Freq)), position = position_stack(vjust = .5)) +
-  #     labs(title = "Attribute Summary for HORS", x = "Barrier Status", y = "Proportion %", fill="Barrier Status") +
-  #     scale_fill_manual(values=c("#d52a2a", "#32cd32", "#ffb400", "#965ab3")) +
-  #     theme(plot.title = element_text(hjust = 0.5))
-  #   }
-  #   else if (input$options == "type"){
-  #     df1 <- df %>%
-  #           count(crossing_feature_type) %>%
-  #           mutate(Perc = (n/sum(n)) * 100) %>%
-  #           mutate(Freq = n/sum(n))
-
-  #     ggplot(df1, aes(x=crossing_feature_type, y=Perc, fill=crossing_feature_type)) +
-  #     geom_bar(stat="identity") + 
-  #     geom_text(aes(label=scales::percent(Freq)), position = position_stack(vjust = .5)) +
-  #     labs(title = "Attribute Summary for HORS", x = "Feature Type", y = "Proportion %", fill="Crossing Feature Type") + 
-  #     theme(plot.title = element_text(hjust = 0.5))
-  #   }
-  # }
-  # )
 
   #pie chart
   output$attr_pie <- renderPlot(width = "auto",
@@ -1213,11 +943,17 @@ server <- function(input, output, session) {
 }
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 # finally, we need to call the shinyapp function with the ui and server as arguments
-shinyApp(ui, server)
+############################################################################
+### MAKE SURE LINE BELOW IS CHANGED BASED ON LOCAL MACHINE RUN OR DEPLOY ###
+### DEPLOY: shinyApp(ui, server)                                         ###
+### LOCAL MACHINE: app <- shinyApp(ui, server)                           ###
+############################################################################
+
+app <- shinyApp(ui, server)
 
 
 #run app locally if using a code editor other than RStudio
 ###########################################################
 ### MAKE SURE LINE BELOW IS COMMENTED OUT WHEN DEPLOYED ###
 ###########################################################
-#runApp(app)
+runApp(app)
