@@ -171,7 +171,7 @@ ui <- fluidPage(
                                                    column(width=6,
                                                           infoBox("Number of barriers on Accessible Streams:", paste0(length(df$aggregated_crossings_id)), icon = icon("solid fa-ban"), fill = TRUE)),
                                                    column(width=6,
-                                                          infoBox("Amount of habitat that's been reconnected:", paste0(toString(hab_connected)), icon = icon("solid fa-water"), fill = TRUE)),
+                                                          infoBox("Amount of habitat that's been reconnected:", paste0(toString(hab_connected), "km"), icon = icon("solid fa-water"), fill = TRUE)),
                                                    column(width=6,
                                                           infoBox("Amount of stream still blocked:", paste0(toString(gain), " km"), icon = icon("solid fa-road-barrier"), fill = TRUE)),
                                                    column(width=6,
@@ -949,11 +949,11 @@ server <- function(input, output, session) {
 ### LOCAL MACHINE: app <- shinyApp(ui, server)                           ###
 ############################################################################
 
-app <- shinyApp(ui, server)
+shinyApp(ui, server)
 
 
 #run app locally if using a code editor other than RStudio
 ###########################################################
 ### MAKE SURE LINE BELOW IS COMMENTED OUT WHEN DEPLOYED ###
 ###########################################################
-runApp(app)
+# runApp(app)
