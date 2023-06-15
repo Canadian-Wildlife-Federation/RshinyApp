@@ -62,7 +62,7 @@ watershed_connectivity <- function(habitat_type){
   request <- paste('http://159.89.114.239:9002/functions/postgisftw.wcrp_watershed_connectivity_status/items.json?watershed_group_code=HORS&barrier_type=',habitat_type, sep = "") #change watershed_group_code=HORS to another watershed
   res <- GET(request)
   data <- fromJSON(rawToChar(res$content))
-  return(data$connectivity_status) #number returned for connectivity status from bcfishpass model
+  return(c(data$connectivity_status, data$all_habitat, data$all_habitat_accessible)) #number returned for connectivity status from bcfishpass model
 }
 
 barrier_severity <- function(barrier_type){
@@ -92,21 +92,34 @@ barrier_count <- function(barrier_type){
 ##########################################################################################################################################################################################################################################################################################################################################
 hab_conf <- sum(df$pscis_status == "HABITAT CONFIRMATION", na.rm = TRUE) #number of crossings where PSCIS has confirmed fish habitat
 assessed <- sum(is.na(df$pscis_assessment_date)) #number of assessed crossings
-total <- 526.95 #total km in HORS that in the next iteration of the model will be a live function
-access <- round(total * (watershed_connectivity("ALL") / 100), 2) #accessible habitat
+total <- watershed_connectivity("ALL")[2] #all habitat accessible or not
+access <- watershed_connectivity("ALL")[3] #accessible habitat
 gain <- round(total - access, 2) #current habitat gain 
 gain_goal <- round((total*0.96) - access, 2) #goal for habitat gain
-hab_connected <- gain_goal - 14.59 #current amount of habitat that has been reconnected 
+#hab_connected <- gain_goal - 14.59 #current amount of habitat that has been reconnected ##PULL TOTAL AMOUNT OF HABITAT REMEDIATED##
 dam_assessed_total <- barrier_severity("DAM")[2] #number of assessed dams
 
 ###########################################################################################################################################################################################################################################################################################################################################
 
 
-#priority and intermediate barrier list data frames to be used for filtering of ids server side
+#priority, intermediate, removed, and remediated barrier lists data frames to be used for filtering of ids server side
 ###########################################################################################################################################################################################################################################################################################################################################
-priority <- read.csv("data/priority_barriers.csv") #priority list 
+priority <- read.csv("data/priority.csv") #priority list 
 priority$aggregated_crossings_id <- as.character(priority$aggregated_crossings_id) #convert id to character to be more easily filtered
+priority_bar <- df %>%
+        dplyr::filter(
+          id %in% priority$aggregated_crossings_id
+        ) %>%
+        dplyr::filter(
+          barrier_status %in% 'BARRIER'
+        )
+removal <- read.csv("data/removed.csv") #priority list 
+removal$aggregated_crossings_id <- as.character(removal$aggregated_crossings_id)
 intermediate <- read.csv("data/inter_barriers.csv") #intermediate list
+rem <- read.csv("data/remediated.csv") #remediated barrier list
+hab_connected <- sum(rem$habitat_gain) #current amount of habitat that has been reconnected
+rem_comp <- sum(rem$remediations_completed) #number of remediations completed
+
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 #stats related to priority tables
 design <- sum(priority$next_steps == "Design") #number of priority crossings with designs in place
@@ -116,6 +129,7 @@ remediation <- sum(priority$next_steps == "Remediation") #priority crossings tha
 acknow <- read.csv("data/acknowledgements.csv") #acknowledgments to the authors of the data and prioritization process
 datadict <- read.csv("data/datadict.csv") #key data dictionary for bcfishpass.crossings layers
 priordict <- read.csv("data/priority_dict.csv") #priority crossings table dictionary
+remdict <- read.csv("data/rem_dict.csv") #removed crossings table dictionary
 ###########################################################################################################################################################################################################################################################################################################################################
 
 
@@ -152,7 +166,7 @@ ui <- fluidPage(
                                                  id = 'constatus',
                                                  #progress bar generation
                                                  shinyWidgets::progressBar(id = "connect",
-                                                                       value = watershed_connectivity("ALL"),
+                                                                       value = watershed_connectivity("ALL")[1],
                                                                        display_pct = TRUE,
                                                                        status = "custom",
                                                                        total = 100,
@@ -169,7 +183,7 @@ ui <- fluidPage(
                                                  #key watershed fact boxes
                                                  fluidRow(id="statattr",
                                                    column(width=6,
-                                                          infoBox("Number of barriers on Accessible Streams:", paste0(length(df$aggregated_crossings_id)), icon = icon("solid fa-ban"), fill = TRUE)),
+                                                          infoBox("Number of barriers on Priority List:", paste0(length(priority_bar$id)), icon = icon("solid fa-ban"), fill = TRUE)),
                                                    column(width=6,
                                                           infoBox("Amount of habitat that's been reconnected:", paste0(toString(hab_connected), "km"), icon = icon("solid fa-water"), fill = TRUE)),
                                                    column(width=6,
@@ -188,7 +202,7 @@ ui <- fluidPage(
                                                    column(width=3,
                                                           valueBox(paste0(toString(design)), "Designs Created", icon = icon("solid fa-pen-ruler"))),
                                                    column(width=3,
-                                                   valueBox(paste0(toString(remediation)), "Remediations Completed", icon = icon("solid fa-person-digging")))
+                                                   valueBox(paste0(toString(rem_comp)), "Remediations Completed", icon = icon("solid fa-person-digging")))
                                              ))),
 
                                           fluidRow(
@@ -222,7 +236,7 @@ ui <- fluidPage(
                                                     fluidRow(
                                                       box(width = 12, title = "Connectivity Goals", id = 'congoals',
                                                           
-                                                          infoBox(paste0("By 2040, the percent (%) of total linear habitat accessible to anadromous salmon will increase from ", toString(watershed_connectivity("ALL")), "% to 96% within the Horsefly River watershed (i.e., reconnect at least ", toString(gain_goal), " km of habitat)."), "", icon = icon("solid fa-1"), fill = TRUE),
+                                                          infoBox(paste0("By 2040, the percent (%) of total linear habitat accessible to anadromous salmon will increase from ", toString(watershed_connectivity("ALL")[1]), "% to 96% within the Horsefly River watershed (i.e., reconnect at least ", toString(gain_goal), " km of habitat)."), "", icon = icon("solid fa-1"), fill = TRUE),
                                                           infoBox("By 2024, the total area of overwintering habitat accessible to Anadromous Salmon will increase by 1,500 m2 within the Horsefly River watershed.", "", icon = icon("solid fa-2"), fill = TRUE)
                                                       )),
                                                     fluidRow(
@@ -297,7 +311,7 @@ ui <- fluidPage(
                          tabPanel("", value = "Tab_1", 
                                    #add content to tab panel
                                   fluidRow(id = "row1",
-                                    selectInput("priority", "Barrier List", c("All" = "All", "Priority" = "Priority", "Intermediate" = "Intermediate"), selected = "All"),
+                                    selectInput("priority", "Select Barrier List", c("All" = "All", "Priority" = "Priority", "Intermediate" = "Intermediate", "Removed" = "Removed"), selected = "All"),
                                     bsTooltip("priority", "Here is some text with your instructions", placement = "top", trigger = "hover", options = NULL),
                                     selectInput("variable", "Barrier Status", c("Passable" = "PASSABLE", "Barrier" = "BARRIER","Potential"="POTENTIAL","Unknown"="UNKNOWN"), selected = c("PASSABLE", "BARRIER","POTENTIAL","UNKNOWN"), multiple = TRUE),
                                     bsTooltip("variable", "Here is some text with your instructions", placement = "top", trigger = "hover", options = NULL)
@@ -342,12 +356,15 @@ ui <- fluidPage(
                                                              ))),
                                                            p("Initially, the barrier prioritization analysis ranked all barriers in the watershed by the amount of habitat blocked to produce a \"preliminary barrier list\", which also accounted for assessing \"sets\" of barriers for which remediation could be coordinated to maximize connectivity gains. From this list, the top-ranking subset of barriers - comprising more barriers than are needed to achieve the goals - is selected to produce an \"intermediate barrier list\". Barriers that did not rank highly in the model results but were identified as priority barriers by the local partners were also added to the intermediate barrier list. A longer list of barriers is needed due to the inherent assumptions and uncertainty in the connectivity and habitat models and gaps in available data. Barriers that have been modelled (i.e., points where streams and road/rail networks intersect) are assumed to be barriers until field verification is undertaken and structures that have been assessed as \"potential\" barriers (e.g., may be passable at certain flow levels or for certain life history stages) require further investigation before a definitive remediation decision is made. Additionally, the habitat model identifies stream segments that have the potential to support spawning or rearing habitat for target species but does not attempt to quantify habitat quality or suitability, which will require additional field verification once barrier assessments have completed. As such, the intermediate barrier list should be considered as a starting point in the prioritization process and represents structures that are a priority to evaluate further through barrier assessment and habitat confirmations because some structures will likely be passable, others will not be associated with usable habitat, and others may not be feasible to remediate because of logistic considerations."),
                                                            p("The intermediate barrier list was updated following the barrier assessments and habitat confirmations that were undertaken during the 2021 field season - some barriers were moved forward to the \"priority barrier list\" and others were eliminated from consideration due to one or more of the considerations discussed in Table . The priority barrier list represents structures that were confirmed to be partial or full barriers to fish passage and that block access to confirmed habitat. Barriers on the priority list were reviewed by planning team members and selected for inclusion for proactive pursual of remediation.  For more details on the habitat, connectivity, and barrier prioritization models, please see ", a("Appendix A", href="https://horsefly-wcrp.netlify.app/appendixa"), " and ", a("Appendix B", href="https://horsefly-wcrp.netlify.app/appendixb"), " of the WCRP."),
-                                                           h2("Data Dictionary"),
+                                                           h2("Priority Barrier List Dictionary"),
+                                                           hr(),
+                                                           tableOutput("pdict"),
+                                                           h2("Intermediate Barrier List Dictionary"),
                                                            hr(),
                                                            tableOutput("dict"),
-                                                           h2("Priority Data Dictionary TEST TO SEE IF IT WORKED"),
+                                                           h2("Removed Barriers List Dictionary"),
                                                            hr(),
-                                                           tableOutput("pdict")
+                                                           tableOutput("rmdict")
                                    ))#))
                           )
               )
@@ -532,7 +549,7 @@ server <- function(input, output, session) {
                         <tr>
                         <tr class=\"popup\">
                           <th class=\"popup\">Road Name:  </th>
-                          <th class=\"popup\">", df$next_steps, "</th>
+                          <th class=\"popup\">", df$road_name, "</th>
                         <tr>
                         <tr class=\"popup\">
                           <th class=\"popup\">Reason:  </th>
@@ -543,6 +560,32 @@ server <- function(input, output, session) {
                           <th class=\"popup\">", df$notes, "</th>
                         <tr>
                       </table>"))
+    } else if (priority_div() == "Removed") {
+      df <- df %>%
+        dplyr::filter(
+          id %in% removal$aggregated_crossings_id
+        ) %>%
+        dplyr::filter(
+          barrier_status %in% input$variable
+        )
+        df <- left_join(df, removal, by = c("id" = "aggregated_crossings_id"))
+        #below is the table formatting for the priority barriers (priority in the dropdown)
+        df<- df %>%  mutate(label = paste0("<table style=\"border: 1px solid black\"> 
+                        <h4>ID: ", df$aggregated_crossings_id, "</h4>
+                        <br>
+                        <tr class=\"popup\">
+                          <th class=\"popup\">Stream Namr:  </th>
+                          <th class=\"popup\">", df$stream_name, "</th>
+                        <tr>
+                        <tr class=\"popup\">
+                          <th class=\"popup\">Reason for Removal:  </th>
+                          <th class=\"popup\">", df$reason_removal, "</th>
+                        <tr>
+                        <tr class=\"popup\">
+                          <th class=\"popup\">Comments:  </th>
+                          <th class=\"popup\">", df$comments, "</th>
+                        <tr>
+                      </table>"))
     } else if (priority_div() == "Intermediate") {
       df <- df %>%
         dplyr::filter(
@@ -551,7 +594,7 @@ server <- function(input, output, session) {
         dplyr::filter(
           barrier_status %in% input$variable
         )
-    } else {
+    }else {
       df <- df %>%
         dplyr::filter(
           barrier_status %in% input$variable
@@ -823,7 +866,7 @@ server <- function(input, output, session) {
 
   #Update connectivity status
   observeEvent(input$refresh, {
-      updateProgressBar(session = session, id = "connect", value = watershed_connectivity("ALL"))
+      updateProgressBar(session = session, id = "connect", value = watershed_connectivity("ALL")[1])
     })
   
   #Rendering Acknowledgements Table
@@ -832,6 +875,7 @@ server <- function(input, output, session) {
   #rendering data dictionary
   output$dict <- renderTable(datadict)
   output$pdict <- renderTable(priordict)
+  output$rmdict <- renderTable(remdict)
 
   #updating boxes given dropdown value
 
@@ -866,11 +910,12 @@ server <- function(input, output, session) {
   })
 
   observe({
-    if (input$priority == "All") {
-      shinyjs::showElement(id = "variable")
-    } else {
-      shinyjs::hideElement(id = "variable")
-    }
+    # if (input$priority == "All") {
+    #   shinyjs::showElement(id = "variable")
+    # } else {
+    #   shinyjs::hideElement(id = "variable")
+    # }
+    shinyjs::hideElement(id = "variable")
   })
 
   output$box <- renderUI({
@@ -949,11 +994,11 @@ server <- function(input, output, session) {
 ### LOCAL MACHINE: app <- shinyApp(ui, server)                           ###
 ############################################################################
 
-shinyApp(ui, server)
+app <- shinyApp(ui, server)
 
 
 #run app locally if using a code editor other than RStudio
 ###########################################################
 ### MAKE SURE LINE BELOW IS COMMENTED OUT WHEN DEPLOYED ###
 ###########################################################
-# runApp(app)
+runApp(app)

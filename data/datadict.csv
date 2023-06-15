@@ -1,19 +1,19 @@
 ﻿Attribute,Definition
-Crossing Source,"Data source for the specific crossing. For example, modelled crossing signifies that the crossing was modelled by the bcfishpass model."
-Feature Type,The potential crossing feature types associated with each crossing type.
-PSCIS Status,Status given by the Provincial Stream Crossing Inventory System (PSCIS) for British Columbia.
-Crossing Type Code,
-Crossing Subtype Code,
-PSCIS Road Name:,Road name closest to the crossing during the PSCIS assessment of said crossing.
-PSCIS Stream Name:,Stream name on which the specific crossing rests according to a PSCIS assessment. This attribute will only exist if there was an assessmnet performed by PSCIS.
-PSCIS Assessment Comment:,Comment left by the PSCIS assessment team for specific crossing.
-PSCIS Assessment Date:,Date at which the PSCIS assessment took place.
-Dam Name:,Name of the crossing.
-Dam Owner:,Owner of the crossing.
-GNIS Stream Name:,Stream on which the crossing rests according to the Geographic Names Information System.
-Stream Order:,
-Anthropogenic Barriers:,
-Count of Anthropogenic Barriers:,
-All Habitat Blocked:,"All modelled habitat blocked by the crossing, both upstream and downstream."
-Upstream Habitat Blocked:,All modelled habitat blocked upstream of the crossing by the crossing.
+Crossing Source,"Data source for the crossing, one of: {PSCIS,MODELLED CROSSINGS,CABD,MISC BARRIERS}"
+Feature Type,"The general type of feature crossing the stream, valid feature types are {DAM,RAIL,""ROAD, DEMOGRAPHIC"",""ROAD, RESOURCE/OTHER"",TRAIL,WEIR}"
+PSCIS Status,"From PSCIS, the current_pscis_status of the crossing, one of: {ASSESSED,HABITAT CONFIRMATION,DESIGN,REMEDIATED}"
+Crossing Type Code,"Defines the type of crossing present at the location of the stream crossing. Acceptable types are: OBS = Open Bottom Structure CBS = Closed Bottom Structure OTHER = Crossing structure does not fit into the above categories. Eg: ford, wier"
+Crossing Subtype Code,"Further definition of the type of crossing, one of {BRIDGE,CRTBOX,DAM,FORD,OVAL,PIPEARCH,ROUND,WEIR,WOODBOX,NULL}"
+PSCIS Road Name:,"PSCIS road name, taken from the PSCIS assessment data submission"
+PSCIS Stream Name:,"PSCIS stream name, taken from the PSCIS assessment data submission"
+PSCIS Assessment Comment:,"PSCIS assessment_comment, taken from the PSCIS assessment data submission"
+PSCIS Assessment Date:,"PSCIS assessment_date, taken from the PSCIS assessment data submission"
+Dam Name:,See CABD dams column: dam_name_en
+Dam Owner:,See CABD dams column: owner
+GNIS Stream Name:,The BCGNIS (BC Geographical Names Information System) name associated with the FWA stream
+Stream Order:,Order of FWA stream at point
+Anthropogenic Barriers:,"Barrier crossings downstream of the given crossing "
+Count of Anthropogenic Barriers:,"A count of the barrier crossings downstream of the given crossing "
+All Habitat Blocked:,"Length of all spawning and rearing habitat upstream of point "
+Upstream Habitat Blocked:,"Length of all spawning and rearing habitat upstream of point "
 geoJSON,Raw geoJSON data associated with specific crossing. Data compiled by Hilcrest Geographics

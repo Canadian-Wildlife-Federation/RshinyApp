@@ -1,6 +1,6 @@
 ﻿Attribute,Definition
 Stream Name:,Name of the stream on which the prioritized crossings rests.
-Feature Type:,
+Feature Type:,"The general type of feature crossing the stream, valid feature types are {DAM,RAIL,""ROAD, DEMOGRAPHIC"",""ROAD, RESOURCE/OTHER"",TRAIL,WEIR}"
 Priority:,Priority in which measures should be taken for barrier remediation.
 Owner:,Owner of the crossing in question.
 Habitat Quality (Upstream):,Quality of the modelled habitat upstream of the crossing. The habitat can vary due to a number of factors (e.g. slope)
