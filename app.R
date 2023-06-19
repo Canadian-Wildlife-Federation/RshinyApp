@@ -732,7 +732,7 @@ server <- function(input, output, session) {
                        options = leafletOptions(pane = "maplabels")
                        ) %>%
       #add stream network
-      addPolylines(data = df_null, color = "cadetblue", weight = 1.5, opacity = 1, label = ~paste0(gnis_name),
+      addPolylines(data = df_null, color = "deepskyblue", weight = 1.5, opacity = 1, label = ~paste0(gnis_name),
       labelOptions = labelOptions(
         style = list(
           "color" = "black",
@@ -740,10 +740,10 @@ server <- function(input, output, session) {
           "font-size" = "15px",
           "border-color" = "rgba(0,0,0,0.5)"
       )),  group = "Streams", options = leafletOptions(pane = "maplabels")) %>%
-      #addPolylines(data = df_null, color = "cadetblue", weight = 1.5, opacity = 1,  group = "Streams", options = leafletOptions(pane = "maplabels")) %>%
+      #addPolylines(data = df_null, color = "deepskyblue", weight = 1.5, opacity = 1,  group = "Streams", options = leafletOptions(pane = "maplabels")) %>%
       #addPolylines(data = df_nonstr, color = "grey", group = "Non-Streams") %>%
       addPolygons(data = boundary, stroke = TRUE, fillOpacity = 0, smoothFactor = 0.5,
-    color = "red", weight = 2, opacity = 1, group = "Watershed<br>Boundary", fillColor = NA, options = leafletOptions(pane = "polygons")) %>%
+    color = "orangered", weight = 3, opacity = 1, group = "Watershed<br>Boundary", fillColor = NA, options = leafletOptions(pane = "polygons")) %>%
       addEasyButton(easyButton(
         icon = "fa-home", title = "Deafult View",
         onClick = JS("function(btn, map){ map.setView([52.280408375,	-121.005149476], 10); }"))) %>% #set home view

@@ -294,6 +294,7 @@ table.dataTable thead > tr > th.sorting::before, table.dataTable thead > tr > th
     background-color:rgb(241, 241, 241);
     color: black;
     border: 1px solid;
+    padding: 3px;
 }
 
 th {
