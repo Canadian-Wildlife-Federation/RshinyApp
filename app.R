@@ -79,11 +79,11 @@ barrier_extent <- function(barrier_type){
   return(c(data$all_habitat_blocked_km, data$all_habitat_blocked_pct)) #number returned for habitat blocked from bcfishpass model
 }
 
-barrier_count <- function(barrier_type){
-  request <- paste('http://159.89.114.239:9002/functions/postgisftw.wcrp_barrier_count/items.json?watershed_group_code=HORS&barrier_type=',barrier_type, sep = "")#change watershed_group_code=HORS to another watershed
+barrier_count <- function(barrier_type, stream_type){
+  request <- paste('http://159.89.114.239:9002/functions/postgisftw.wcrp_barrier_count/items.json?watershed_group_code=HORS&barrier_type=',barrier_type,'&stream_type=',stream_type, sep = "")#change watershed_group_code=HORS to another watershed
   res <- GET(request)
   data <- fromJSON(rawToChar(res$content))
-  return(c(data$n_passable, data$n_barrier, data$n_potential, data$n_unknown)) #number returned for passability status for barrier type from bcfishpass model
+  return(c(data$n_passable, data$n_barrier, data$n_potential, data$n_unknown, data$total)) #number returned for passability status for barrier type from bcfishpass model
 }
 
 ###########################################################################################################################################################################################################################################################################################################################################
@@ -106,13 +106,13 @@ dam_assessed_total <- barrier_severity("DAM")[2] #number of assessed dams
 ###########################################################################################################################################################################################################################################################################################################################################
 priority <- read.csv("data/priority.csv") #priority list 
 priority$aggregated_crossings_id <- as.character(priority$aggregated_crossings_id) #convert id to character to be more easily filtered
-priority_bar <- df %>%
-        dplyr::filter(
-          id %in% priority$aggregated_crossings_id
-        ) %>%
-        dplyr::filter(
-          barrier_status %in% 'BARRIER'
-        )
+# priority_bar <- df %>%
+#         dplyr::filter(
+#           id %in% priority$aggregated_crossings_id
+#         ) %>%
+#         dplyr::filter(
+#           barrier_status %in% 'BARRIER'
+#         )
 removal <- read.csv("data/removed.csv") #priority list 
 removal$aggregated_crossings_id <- as.character(removal$aggregated_crossings_id)
 intermediate <- read.csv("data/inter_barriers.csv") #intermediate list
@@ -183,7 +183,7 @@ ui <- fluidPage(
                                                  #key watershed fact boxes
                                                  fluidRow(id="statattr",
                                                    column(width=6,
-                                                          infoBox("Number of barriers on Priority List:", paste0(length(priority_bar$id)), icon = icon("solid fa-ban"), fill = TRUE)),
+                                                          infoBox("Number of barriers on Priority List:", paste0(length(priority$aggregated_crossings_id)), icon = icon("solid fa-ban"), fill = TRUE)),
                                                    column(width=6,
                                                           infoBox("Amount of habitat that's been reconnected:", paste0(toString(hab_connected), "km"), icon = icon("solid fa-water"), fill = TRUE)),
                                                    column(width=6,
@@ -228,6 +228,10 @@ ui <- fluidPage(
                                                     ),
                                                     fluidRow(class = "rowhide",
                                                              plotOutput("attr_pie") #find functionality of the pie chart lower in the code
+                                                    )
+                                                    ,
+                                                    fluidRow(
+                                                             dataTableOutput("bar_count") #stream crossings
                                                     )
                                                     )
                                                     )
@@ -311,7 +315,7 @@ ui <- fluidPage(
                          tabPanel("", value = "Tab_1", 
                                    #add content to tab panel
                                   fluidRow(id = "row1",
-                                    selectInput("priority", "Select Barrier List", c("All" = "All", "Priority" = "Priority", "Intermediate" = "Intermediate", "Removed" = "Removed"), selected = "All"),
+                                    selectInput("priority", "Select Barrier List", c("All" = "All", "Priority" = "Priority", "Intermediate" = "Intermediate", "Removed from consideration" = "Removed"), selected = "All"),
                                     bsTooltip("priority", "Here is some text with your instructions", placement = "top", trigger = "hover", options = NULL),
                                     selectInput("variable", "Barrier Status", c("Passable" = "PASSABLE", "Barrier" = "BARRIER","Potential"="POTENTIAL","Unknown"="UNKNOWN"), selected = c("PASSABLE", "BARRIER","POTENTIAL","UNKNOWN"), multiple = TRUE),
                                     bsTooltip("variable", "Here is some text with your instructions", placement = "top", trigger = "hover", options = NULL)
@@ -362,7 +366,7 @@ ui <- fluidPage(
                                                            h2("Intermediate Barrier List Dictionary"),
                                                            hr(),
                                                            tableOutput("dict"),
-                                                           h2("Removed Barriers List Dictionary"),
+                                                           h2("Removed from Consideration Barriers List Dictionary"),
                                                            hr(),
                                                            tableOutput("rmdict")
                                    ))#))
@@ -563,18 +567,19 @@ server <- function(input, output, session) {
     } else if (priority_div() == "Removed") {
       df <- df %>%
         dplyr::filter(
-          id %in% removal$aggregated_crossings_id
+          id %in% removal$aggregated_crossings_id | id %in% removal$pscis_id
         ) %>%
         dplyr::filter(
           barrier_status %in% input$variable
         )
-        df <- left_join(df, removal, by = c("id" = "aggregated_crossings_id"))
+        #df <- left_join(df, removal, sql_on = "df.id = removal.pscis_id or df.id = removal.aggregated_crossings_id")
+        df <- left_join(df, removal, by = c("id" = "aggregated_crossings_id")) 
         #below is the table formatting for the priority barriers (priority in the dropdown)
         df<- df %>%  mutate(label = paste0("<table style=\"border: 1px solid black\"> 
                         <h4>ID: ", df$aggregated_crossings_id, "</h4>
                         <br>
                         <tr class=\"popup\">
-                          <th class=\"popup\">Stream Namr:  </th>
+                          <th class=\"popup\">Stream Name:  </th>
                           <th class=\"popup\">", df$stream_name, "</th>
                         <tr>
                         <tr class=\"popup\">
@@ -851,6 +856,26 @@ server <- function(input, output, session) {
   }
   )
 
+  #stream crossings table
+  output$bar_count <- renderDataTable({
+    if (input$options == "dam") {
+      colomn <- c("Passable","Barrier","Potential","Unknwon","Total")
+      values_on <- c(barrier_count('ALL','ON')[1], barrier_count('ALL','ON')[5], barrier_count('ALL','ON')[9], barrier_count('ALL','ON')[13], barrier_count('ALL','ON')[17])
+      values_hab <- c(barrier_count('ALL','HABITAT')[1], barrier_count('ALL','HABITAT')[5], barrier_count('ALL','HABITAT')[9], barrier_count('ALL','HABITAT')[13], barrier_count('ALL','HABITAT')[17])
+      values_acc <- c(barrier_count('ALL','ACCESSIBLE')[1], barrier_count('ALL','ACCESSIBLE')[5], barrier_count('ALL','ACCESSIBLE')[9], barrier_count('ALL','ACCESSIBLE')[13], barrier_count('ALL','ACCESSIBLE')[17])
+    }
+    else if (input$options == "road") {
+      colomn <- c("Passable","Barrier","Potential","Unknwon","Total")
+      values_on <- c((barrier_count('ALL','ON')[2]+barrier_count('ALL','ON')[3]), (barrier_count('ALL','ON')[6]+barrier_count('ALL','ON')[7]), (barrier_count('ALL','ON')[10]+barrier_count('ALL','ON')[11]), (barrier_count('ALL','ON')[14]+barrier_count('ALL','ON')[15]), (barrier_count('ALL','ON')[18]+barrier_count('ALL','ON')[19]))
+      values_hab <- c((barrier_count('ALL','HABITAT')[2]+barrier_count('ALL','HABITAT')[3]), (barrier_count('ALL','HABITAT')[6]+barrier_count('ALL','HABITAT')[7]), (barrier_count('ALL','HABITAT')[10]+barrier_count('ALL','HABITAT')[11]), (barrier_count('ALL','HABITAT')[14]+barrier_count('ALL','HABITAT')[15]), (barrier_count('ALL','HABITAT')[18]+barrier_count('ALL','HABITAT')[19]))
+      values_acc <- c((barrier_count('ALL','ACCESSIBLE')[2]+barrier_count('ALL','ACCESSIBLE')[3]), (barrier_count('ALL','ACCESSIBLE')[6]+barrier_count('ALL','ACCESSIBLE')[7]), (barrier_count('ALL','ACCESSIBLE')[10]+barrier_count('ALL','ACCESSIBLE')[11]),(barrier_count('ALL','ACCESSIBLE')[14]+barrier_count('ALL','ACCESSIBLE')[15]),(barrier_count('ALL','ACCESSIBLE')[18]+barrier_count('ALL','ACCESSIBLE')[19]))
+    }
+
+    dt <- data.frame(colomn, values_on, values_hab, values_acc)
+    datatable(dt, rownames = FALSE, colnames = c("Passability Status", "ON", "HABITAT", "ACCESSIBLE"), options = list(dom = 't'))
+    }
+  )
+
   #progressbar plot
   #theme_void() + theme(legend.position="none")
   output$progress <- renderPlot(width = "auto",
@@ -994,11 +1019,11 @@ server <- function(input, output, session) {
 ### LOCAL MACHINE: app <- shinyApp(ui, server)                           ###
 ############################################################################
 
-app <- shinyApp(ui, server)
+shinyApp(ui, server)
 
 
 #run app locally if using a code editor other than RStudio
 ###########################################################
 ### MAKE SURE LINE BELOW IS COMMENTED OUT WHEN DEPLOYED ###
 ###########################################################
-runApp(app)
+#runApp(app)
