@@ -95,7 +95,8 @@ assessed <- sum(is.na(df$pscis_assessment_date)) #number of assessed crossings
 total <- watershed_connectivity("ALL")[2] #all habitat accessible or not
 access <- watershed_connectivity("ALL")[3] #accessible habitat
 gain <- round(total - access, 2) #current habitat gain 
-gain_goal <- round((total*0.96) - access, 2) #goal for habitat gain
+goal <- read.csv('data/goal.csv')
+gain_goal <- round((total*(goal$long_goal/100)) - access, 2) #goal for habitat gain
 #hab_connected <- gain_goal - 14.59 #current amount of habitat that has been reconnected ##PULL TOTAL AMOUNT OF HABITAT REMEDIATED##
 dam_assessed_total <- barrier_severity("DAM")[2] #number of assessed dams
 
@@ -244,7 +245,7 @@ ui <- fluidPage(
                                                     fluidRow(
                                                       box(width = 12, title = "Connectivity Goals", id = 'congoals',
                                                           
-                                                          infoBox(paste0("By 2040, the percent (%) of total linear habitat accessible to anadromous salmon will increase from ", toString(watershed_connectivity("ALL")[1]), "% to 96% within the Horsefly River watershed (i.e., reconnect at least ", toString(gain_goal), " km of habitat)."), "", icon = icon("solid fa-1"), fill = TRUE),
+                                                          infoBox(paste0("By 2040, the percent (%) of total linear habitat accessible to anadromous salmon will increase from ", toString(watershed_connectivity("ALL")[1]), "% to ",goal$long_goal,"% within the Horsefly River watershed (i.e., reconnect at least ", toString(gain_goal), " km of habitat)."), "", icon = icon("solid fa-1"), fill = TRUE),
                                                           infoBox("By 2024, the total area of overwintering habitat accessible to Anadromous Salmon will increase by 1,500 m2 within the Horsefly River watershed.", "", icon = icon("solid fa-2"), fill = TRUE)
                                                       )),
                                                     fluidRow(
@@ -1023,11 +1024,11 @@ server <- function(input, output, session) {
 ### LOCAL MACHINE: app <- shinyApp(ui, server)                           ###
 ############################################################################
 
-shinyApp(ui, server)
+app <- shinyApp(ui, server)
 
 
 #run app locally if using a code editor other than RStudio
 ###########################################################
 ### MAKE SURE LINE BELOW IS COMMENTED OUT WHEN DEPLOYED ###
 ###########################################################
-#runApp(app)
+runApp(app)
