@@ -490,11 +490,18 @@ p, li {
     text-align:left;
 }
 
+#goal-bar {
+    width: 100%; height: 50px;
+    margin-top: -10px;
+    z-index: -1;
+    background: linear-gradient(to right, rgb(255, 255, 255) 96%, rgb(0, 0, 0) 96%, rgb(0, 0, 0) 96.1%, rgb(255, 255, 255) 96.1%, rgb(255, 255, 255) 100%);
+}
+
 #colorstrip-constatus{
     width: 100%; height: 10px;
     border-style: solid;
     border: 0px  white;
-    background: linear-gradient(to right, rgb(224, 0, 0) 80%, rgb(128, 187, 0) 80%, rgb(128, 187, 0) 90%, rgb(0, 128, 0) 90%, rgba(0, 128, 0) 100%);
+    background: linear-gradient(to right, rgb(224, 0, 0) 80%, rgb(128, 187, 0) 80%, rgb(128, 187, 0) 90%, rgb(0, 128, 0) 90%, rgba(0, 128, 0) 96%, rgb(0, 0, 0) 96%, rgb(0, 0, 0) 96.1%, rgb(0, 128, 0) 96.1%, rgba(0, 128, 0) 100%);
 }
 #constatus-strip-text {
     width: 100%; height: 10px;
@@ -507,6 +514,13 @@ p, li {
     font-size: 13px;
 }
 
+#goal-text{
+    display:inline-block;
+    text-align: center;
+    font-weight:bold;
+    font-size: 16px;
+}
+
 #poor-text {
     width: 80%;
 }
@@ -517,6 +531,12 @@ p, li {
 
 #verygood-text {
     width: 9%;
+    padding: 1px;
+    background-color: #fff;
+}
+
+#goal-text {
+    width:192.5%;
 }
 
 /*Target species box buttons*/

@@ -175,8 +175,12 @@ ui <- fluidPage(
                                                   tags$div(id="constatus-strip-text",
                                                            tags$div(id="poor-text","Poor: 0-80%"),
                                                            tags$div(id="good-text","Good: 81-90%"),
-                                                           tags$div(id="verygood-text","Very Good: >90%")
+                                                           tags$div(id="verygood-text","Very Good: >90%"),
                                                            ),
+                                                  tags$div(id="goal-bar",),
+                                                  tags$div(id="constatus-strip-text",
+                                                           tags$div(id="goal-text", "Goal (96%)"),
+                                                          ),
                                                  br(),
                                                  tags$div(h3("Connectivity Overview"),align="center"),
                                                  hr(),
