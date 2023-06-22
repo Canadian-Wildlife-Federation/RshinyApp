@@ -4,4 +4,5 @@ This is a repository for accompanying WCRPs in Canadian watersheds in a convenie
 # Requirements
 - [R](https://cran.r-project.org/bin/windows/base/) installed on your local machine or [RStudio](https://posit.co/download/rstudio-desktop/)
 - Priority and intermediate barrier lists for the watershed you wish to build the WCRP Dashboard app (see data folder in current repository for examples).
-- Mapbox access [token](https://www.mapbox.com/) if wishing to use mapbox basemaps in app.
+- Mapbox access [token](https://www.mapbox.com/) if wishing to use mapbox basemaps in app (free to create account and token).
+- Follow code and read comments which show how to alter code to suit specific watershed area.
