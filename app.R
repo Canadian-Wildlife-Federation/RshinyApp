@@ -188,7 +188,7 @@ ui <- fluidPage(
                                                  #key watershed fact boxes
                                                  fluidRow(id="statattr",
                                                    column(width=6,
-                                                          infoBox("Number of barriers on Priority List:", paste0(length(priority$aggregated_crossings_id)), icon = icon("solid fa-ban"), fill = TRUE)),
+                                                          infoBox("Total amount of habitat:", paste0(toString(total), " km"), icon = icon("solid fa-fish"), fill = TRUE)),
                                                    column(width=6,
                                                           infoBox("Amount of habitat that's been reconnected:", paste0(toString(hab_connected), "km"), icon = icon("solid fa-water"), fill = TRUE)),
                                                    column(width=6,
@@ -225,6 +225,9 @@ ui <- fluidPage(
                                                              )
                                                     ),
                                                     fluidRow(
+                                                             dataTableOutput("bar_count") #stream crossings
+                                                    ),
+                                                    fluidRow(
                                                              uiOutput("box")
                                                     ),
                                                     fluidRow(
@@ -233,10 +236,6 @@ ui <- fluidPage(
                                                     ),
                                                     fluidRow(class = "rowhide",
                                                              plotOutput("attr_pie") #find functionality of the pie chart lower in the code
-                                                    )
-                                                    ,
-                                                    fluidRow(
-                                                             dataTableOutput("bar_count") #stream crossings
                                                     )
                                                     )
                                                     )
@@ -792,7 +791,7 @@ server <- function(input, output, session) {
     action <- DT::dataTableAjax(session, dt, outputId = "mytable")
 
     datatable(dt, options = list(scrollY = 'calc(100vh - 350px)', ajax = list(url = action), columnDefs = list(list(visible=FALSE, targets=c(5,6)))),
-      colnames = c("ID", "Stream Name", "Barrier Status", "Potenital Crossing Type", "Latitude", "Longitude", "Location"),
+      colnames = c("ID", "Stream Name", "Barrier Status", "Potenital Crossing Type", "Latitude", "Longitude", "Zoom to Location"),
       escape = FALSE,
       selection = "none",
       style = "bootstrap"
@@ -877,7 +876,7 @@ server <- function(input, output, session) {
     }
 
     dt <- data.frame(colomn, values_on, values_hab, values_acc)
-    datatable(dt, rownames = FALSE, colnames = c("Passability Status", "ON", "HABITAT", "ACCESSIBLE"), options = list(dom = 't'))
+    datatable(dt, rownames = FALSE, colnames = c("Passability Status", "TOTAL", "ON HABITAT", "ON ACCESSIBLE STREAMS"), options = list(dom = 't'))
     }
   )
 
