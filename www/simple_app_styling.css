@@ -177,12 +177,12 @@ label#variable-label.control-label, label#priority-label.control-label, label#op
     color: rgb(255, 253, 253); 
     font-size: larger;
 }
-
+/* styling for clusters*/
 .marker-custom-small {
     background-color: rgba(220,220,220, 1);
     color: white;
       }
-  .marker-customr-small div {
+  .marker-custom-small div {
       background-color: rgba(128,128,128, 1);
       }
 

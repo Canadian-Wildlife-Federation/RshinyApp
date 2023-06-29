@@ -31,10 +31,11 @@ library(shinyjs)
 # Find wathershed codes in the BC watershed dictionary query https://a100.gov.bc.ca/pub/fidq/viewWatershedDictionary.do.
 ##########################################################################################################################################################################################################################################################################################################################################
 
-#load in crossings as a spatial feature
+#load in crossings as a spatial feature IF CHANGING WATERSHEDS, UPDATE THIS API CALL
 crossings_res <- read_sf("http://159.89.114.239:9002/collections/bcfishpass.crossings/items.json?filter=watershed_group_code%20=%20%27HORS%27%20AND%20all_spawningrearing_km%3e0")
 
-#add lat, lon, raw geoJSON to crossings layer (lat and lon are necessary for added functionality found further in the code)
+#add lat, lon, raw geoJSON to crossings layer (lat and lon are necessary for added functionality found further in the code) 
+#ONLY THE API CALLS BELOW REQUIRE CHANGES WHEN WORKING IN DIFFERENT WATERSHEDS.
 df <- crossings_res %>%
       dplyr::mutate(long = sf::st_coordinates(crossings_res)[, 1],
                     lat = sf::st_coordinates(crossings_res)[, 2]) %>%
@@ -43,14 +44,26 @@ df <- crossings_res %>%
 #boundary for the watershed
 boundary <- read_sf("https://features.hillcrestgeo.ca/fwa/collections/whse_basemapping.fwa_watershed_groups_poly/items.json?watershed_group_code=HORS")
 
-#stream networks
-acc_stream_res <- read_sf("http://159.89.114.239:9002/collections/bcfishpass.streams_salmon_vw/items.json?watershed_group_code=HORS")#%20AND%20access_model_ch_co_sk%20IS%20NOT%20NULL")
+#ACCESSIBLE stream network
+acc_stream_res <- read_sf("http://159.89.114.239:9002/collections/bcfishpass.streams_salmon_vw/items.json?watershed_group_code=HORS")
 df_str <- st_zm(acc_stream_res)
-#df_str[is.na(df_str)] <- "Not Named"
 df_null <- df_str[rowSums(is.na(df_str)) != 0, ]
 df_str <- na.omit(df_str)
 
-non_stream_res <- read_sf("http://159.89.114.239:9002/collections/bcfishpass.streams_salmon_vw/items.json?watershed_group_code=HORS")#%20AND%20access_model_ch_co_sk%20IS%20NOT%20NULL")
+#coho habitat
+habitat_stream_co <- read_sf("http://159.89.114.239:9002/collections/bcfishpass.streams/items.json?filter=watershed_group_code%20=%20%27HORS%27%20AND%20(model_spawning_co%20IS%20NOT%20NULL%20OR%20model_rearing_co%20IS%20NOT%20NULL)")
+df_str_hab_co <- st_zm(habitat_stream_co)
+
+#sokeye habitat
+habitat_stream_sk <- read_sf("http://159.89.114.239:9002/collections/bcfishpass.streams/items.json?filter=watershed_group_code%20=%20%27HORS%27%20AND%20(model_spawning_sk%20IS%20NOT%20NULL%20OR%20model_rearing_sk%20IS%20NOT%20NULL)")
+df_str_hab_sk <- st_zm(habitat_stream_sk)
+
+#chinook habitat
+habitat_stream_ch <- read_sf("http://159.89.114.239:9002/collections/bcfishpass.streams/items.json?filter=watershed_group_code%20=%20%27HORS%27%20AND%20(model_spawning_ch%20IS%20NOT%20NULL%20OR%20model_rearing_ch%20IS%20NOT%20NULL)")
+df_str_hab_ch <- st_zm(habitat_stream_ch)
+
+#inaccessible streams
+non_stream_res <- read_sf("http://159.89.114.239:9002/collections/bcfishpass.streams_salmon_vw/items.json?watershed_group_code=HORS")
 df_nonstr <- st_zm(non_stream_res)
 
 ##########################################################################################################################################################################################################################################################################################################################################
@@ -88,61 +101,50 @@ barrier_count <- function(barrier_type, stream_type){
 
 ###########################################################################################################################################################################################################################################################################################################################################
 
-#Additional statistics for miscillaneous app features
-##########################################################################################################################################################################################################################################################################################################################################
-hab_conf <- sum(df$pscis_status == "HABITAT CONFIRMATION", na.rm = TRUE) #number of crossings where PSCIS has confirmed fish habitat
-assessed <- sum(is.na(df$pscis_assessment_date)) #number of assessed crossings
-total <- watershed_connectivity("ALL")[2] #all habitat accessible or not
-access <- watershed_connectivity("ALL")[3] #accessible habitat
-gain <- round(total - access, 2) #current habitat gain 
-goal <- read.csv('data/goal.csv')
-gain_goal <- round((total*(goal$long_goal/100)) - access, 2) #goal for habitat gain
-#hab_connected <- gain_goal - 14.59 #current amount of habitat that has been reconnected ##PULL TOTAL AMOUNT OF HABITAT REMEDIATED##
-dam_assessed_total <- barrier_severity("DAM")[2] #number of assessed dams
 
-###########################################################################################################################################################################################################################################################################################################################################
-
-
-#priority, intermediate, removed, and remediated barrier lists data frames to be used for filtering of ids server side
+#priority, intermediate, removed, and remediated barrier lists data frames to be used for filtering of ids server side (data used for the "Interactiove Map" page)
 ###########################################################################################################################################################################################################################################################################################################################################
 priority <- read.csv("data/priority.csv") #priority list 
 priority$aggregated_crossings_id <- as.character(priority$aggregated_crossings_id) #convert id to character to be more easily filtered
-# priority_bar <- df %>%
-#         dplyr::filter(
-#           id %in% priority$aggregated_crossings_id
-#         ) %>%
-#         dplyr::filter(
-#           barrier_status %in% 'BARRIER'
-#         )
 removal <- read.csv("data/removed.csv") #priority list 
-removal$aggregated_crossings_id <- as.character(removal$aggregated_crossings_id)
+removal$aggregated_crossings_id <- as.character(removal$aggregated_crossings_id) #convert id to character to be more easily filtered
 intermediate <- read.csv("data/inter_barriers.csv") #intermediate list
 rem <- read.csv("data/remediated.csv") #remediated barrier list
-hab_connected <- sum(rem$habitat_gain) #current amount of habitat that has been reconnected
-rem_comp <- sum(rem$remediations_completed) #number of remediations completed
 
-#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
-#stats related to priority tables
-design <- sum(priority$next_steps == "Design") #number of priority crossings with designs in place
-remediation <- sum(priority$next_steps == "Remediation") #priority crossings that have plan to be remediated
-#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
-#misc. tables
+#misc. tables in the "Background Information" and "Acknowledgements" sections
 acknow <- read.csv("data/acknowledgements.csv") #acknowledgments to the authors of the data and prioritization process
 datadict <- read.csv("data/datadict.csv") #key data dictionary for bcfishpass.crossings layers
 priordict <- read.csv("data/priority_dict.csv") #priority crossings table dictionary
 remdict <- read.csv("data/rem_dict.csv") #removed crossings table dictionary
 ###########################################################################################################################################################################################################################################################################################################################################
 
+#Additional statistics for miscillaneous app features pulling from the reporting functions above (used for the "Overview" page)
+##########################################################################################################################################################################################################################################################################################################################################
+hab_conf <- sum(df$pscis_status == "HABITAT CONFIRMATION", na.rm = TRUE) #number of crossings where PSCIS has confirmed fish habitat
+assessed <- sum(is.na(df$pscis_assessment_date)) #number of assessed crossings
+total <- watershed_connectivity("ALL")[2] #all habitat accessible or not
+access <- watershed_connectivity("ALL")[3] #accessible habitat
+gain <- round(total - access, 2) #current habitat gain 
+goal <- read.csv('data/goal.csv') # goal for connectivity in watershed
+gain_goal <- round((total*(goal$long_goal/100)) - access, 2) #goal for habitat gain
+dam_assessed_total <- barrier_severity("DAM")[2] #number of assessed dams
+hab_connected <- sum(rem$habitat_gain) #current amount of habitat that has been reconnected
+rem_comp <- sum(rem$remediations_completed) #number of remediations completed
+design <- sum(priority$next_steps == "Design") #number of priority crossings with designs in place
+remediation <- sum(priority$next_steps == "Remediation") #priority crossings that have plan to be remediated
 
-#marker color functions and stream labels
+###########################################################################################################################################################################################################################################################################################################################################
+
+
+#marker color functions and stream labels for rhe symbology of the "Interactive Map" page maps
 ###########################################################################################################################################################################################################################################################################################################################################
 col <- colorFactor(c("#d52a2a", "#32cd32", "#ffb400", "#965ab3"), domain = c("PASSABLE", "BARRIER", "POTENTIAL", "UNKNOWN")) #colours for map
-labs <- as.list(df_str$gnis_name) #stream labels for map
+labs <- as.list(df_str$gnis_name) #stream label popups for map
 ###########################################################################################################################################################################################################################################################################################################################################
 
 #mapbox options for basemaps
 ###########################################################################################################################################################################################################################################################################################################################################
-options(mapbox.accessToken = "pk.eyJ1IjoidG9tYXMtbWsiLCJhIjoiY2w5b2JjNnl0MGR2YjN1bXpjenUwa2hnZyJ9.s21BqE7q2yEgDKFE5zNp_g", mapbox.antialias = TRUE) #acces token for mapbox basemaps
+options(mapbox.accessToken = "pk.eyJ1IjoidG9tYXMtbWsiLCJhIjoiY2w5b2JjNnl0MGR2YjN1bXpjenUwa2hnZyJ9.s21BqE7q2yEgDKFE5zNp_g", mapbox.antialias = TRUE) #acces token for mapbox basemaps (please change if using your own https://docs.mapbox.com/help/getting-started/access-tokens/)
 ###########################################################################################################################################################################################################################################################################################################################################
 
 #main app page
@@ -155,7 +157,7 @@ ui <- fluidPage(
   includeScript("gomap.js"),
   useShinyjs(),
   #create top navbar
-  navbarPage("Horsefly River WCRP", #position = "fixed-top",
+  navbarPage("Horsefly River WCRP", 
     #create tabs in nav bar
     tabPanel("Watershed Summary",
              tabsetPanel(id = "prioritytab",
@@ -165,7 +167,7 @@ ui <- fluidPage(
                                            fluidRow(
                                              box(width = 12, title = "Status of Connectivity", tags$div("This measure of connectivity is based on the percent of total linear habitat available for anadromous salmon in the Horsefly River watershed.", style="font-weight:bold;margin-top: 15px;text-align:center;font-size:15px;font-style:italic"), 
                                                  id = 'constatus',
-                                                 #progress bar generation
+                                                 #progress bar generation, labels here are specific to the connectivity of the Horsefly watershed, please change if quality of connectivity has different ranges in your watershed
                                                  shinyWidgets::progressBar(id = "connect",
                                                                        value = watershed_connectivity("ALL")[1],
                                                                        display_pct = TRUE,
@@ -319,7 +321,7 @@ ui <- fluidPage(
                          tabPanel("", value = "Tab_1", 
                                    #add content to tab panel
                                   fluidRow(id = "row1",
-                                    selectInput("priority", "Select Barrier List", c("All" = "All", "Priority" = "Priority", "Intermediate" = "Intermediate", "Removed from consideration" = "Removed"), selected = "All"),
+                                    selectInput("priority", "Select Barrier List", c("All crossings list" = "All", "Priority" = "Priority", "Intermediate" = "Intermediate", "Removed from consideration" = "Removed"), selected = "All"),
                                     bsTooltip("priority", "Here is some text with your instructions", placement = "top", trigger = "hover", options = NULL),
                                     selectInput("variable", "Barrier Status", c("Passable" = "PASSABLE", "Barrier" = "BARRIER","Potential"="POTENTIAL","Unknown"="UNKNOWN"), selected = c("PASSABLE", "BARRIER","POTENTIAL","UNKNOWN"), multiple = TRUE),
                                     bsTooltip("variable", "Here is some text with your instructions", placement = "top", trigger = "hover", options = NULL)
@@ -373,7 +375,7 @@ ui <- fluidPage(
                                                            h2("Removed from Consideration Barriers List Dictionary"),
                                                            hr(),
                                                            tableOutput("rmdict")
-                                   ))#))
+                                   ))
                           )
               )
 
@@ -393,7 +395,7 @@ ui <- fluidPage(
                                                         br(),
                                                         fluidRow(align="center",
                                                           tableOutput("tableawk"))
-                                    ))#))
+                                    ))
 
                            )
                )
@@ -402,7 +404,7 @@ ui <- fluidPage(
     
     #create element to display an image on right side of navbar
     tags$script(HTML("var header = $('.navbar > .container-fluid');
-    header.append('<div><a href=\"\"><img src=\"https://cwf-fcf.org/assets/wrapper-reusables/images/logo/white-cwf-logo-en.svg\" style=\"float:right;width:200px;height:40px;padding-top:10px;padding-right:5px;\"></a></div>');
+    header.append('<div><a href=\"\"><img src=\"https://cwf-fcf.org/assets/wrapper-reusables/images/F/white-cwf-logo-en.svg\" style=\"float:right;width:200px;height:40px;padding-top:10px;padding-right:5px;\"></a></div>');
     console.log(header)")),
   )
 
@@ -410,7 +412,8 @@ ui <- fluidPage(
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#popup formatting for "all crossings" and "intermediate crossings" tables (intermdeiate and all in the dropdown)
+#popup formatting for "all crossings" and "intermediate crossings" tables (intermediate and all in the dropdown)
+#df$label is another column added in the crossing dataframe that formats an HTML table for each crossing within the crossings data.
 ###########################################################################################################################################################################################################################################################################################################################################
 
 df$label <- paste0("<table style=\"border: 1px solid rgb(241, 241, 241)\">
@@ -501,7 +504,6 @@ df$label <- paste0("<table style=\"border: 1px solid rgb(241, 241, 241)\">
 
 server <- function(input, output, session) {
 
-  
   #conditions based on barrier list dropdown
   priority_div <- reactive({
     input$priority
@@ -509,23 +511,10 @@ server <- function(input, output, session) {
   
   y <- reactive({
 
-    # on click function
-    # onclick <- sprintf(
-    #   "Shiny.setInputValue('click', '%s')",
-    #   rownames(df)
-    # )
-
-    # button with onClick function
-    # button <- sprintf(
-    #   "<a class='go-map'><i class='fa fa-crosshairs'></i></a>" #href='' data-lat='", lat, "'' data-long='", lon,"'
-    # )
-
-    #mutate(Action = paste('<a class="go-map" href="''" data-lat='", Lat, "' data-long="', Long, '" data-zip="', Zipcode, '"><i class="fa fa-crosshairs"></i></a>', sep=""))
-
     if (priority_div() == "Priority") {
       df <- df %>%
         dplyr::filter(
-          id %in% priority$aggregated_crossings_id
+          id %in% priority$aggregated_crossings_id #this filters the data frame for all matching crossings in the priority barrier list and the original API call
         ) %>%
         dplyr::filter(
           barrier_status %in% input$variable
@@ -541,7 +530,7 @@ server <- function(input, output, session) {
                         <tr>
                         <tr class=\"popup\">
                           <th class=\"popup\">Feature Type:  </th>
-                          <th class=\"popup\">", df$barrier_type, "</th>
+                          <th class=\"popup\">", df$crossing_feature_type, "</th>
                         <tr>
                         <tr class=\"popup\">
                           <th class=\"popup\">Priority:  </th>
@@ -571,14 +560,13 @@ server <- function(input, output, session) {
     } else if (priority_div() == "Removed") {
       df <- df %>%
         dplyr::filter(
-          id %in% removal$aggregated_crossings_id | id %in% removal$pscis_id
+          id %in% removal$aggregated_crossings_id #this filters the data frame for all matching crossings in the removed from consideration barrier list and the original API call
         ) %>%
         dplyr::filter(
           barrier_status %in% input$variable
         )
-        #df <- left_join(df, removal, sql_on = "df.id = removal.pscis_id or df.id = removal.aggregated_crossings_id")
         df <- left_join(df, removal, by = c("id" = "aggregated_crossings_id")) 
-        #below is the table formatting for the priority barriers (priority in the dropdown)
+        #below is the table formatting for the priority barriers ("removed from consideration" in the dropdown)
         df<- df %>%  mutate(label = paste0("<table style=\"border: 1px solid black\"> 
                         <h4>ID: ", df$aggregated_crossings_id, "</h4>
                         <br>
@@ -598,7 +586,7 @@ server <- function(input, output, session) {
     } else if (priority_div() == "Intermediate") {
       df <- df %>%
         dplyr::filter(
-          id %in% intermediate$intermediate
+          id %in% intermediate$intermediate #this filters the data frame for all matching crossings in the intermediate barrier list and the original API call
         ) %>%
         dplyr::filter(
           barrier_status %in% input$variable
@@ -631,6 +619,7 @@ server <- function(input, output, session) {
                        lat = ~lat,
                        lng = ~long,
                         #marker clustering options for groups of markers
+                        #large, medium, small are names and and can be updated to represent specific passability status using CSS and used per CSS styling
                        clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
                           var childCount = cluster.getChildCount(); 
                           var c = ' marker-custom-';  
@@ -749,24 +738,28 @@ server <- function(input, output, session) {
           "font-size" = "15px",
           "border-color" = "rgba(0,0,0,0.5)"
       )),  group = "Streams", options = leafletOptions(pane = "maplabels")) %>%
-      #addPolylines(data = df_null, color = "deepskyblue", weight = 1.5, opacity = 1,  group = "Streams", options = leafletOptions(pane = "maplabels")) %>%
-      #addPolylines(data = df_nonstr, color = "grey", group = "Non-Streams") %>%
+      # add coho, sockeye, chinook habitat
+      addPolylines(data = df_str_hab_co, color = "#e11c92", weight = 2, opacity = 1, group = "Coho<br>Habitat", options = leafletOptions(pane = "maplabels")) %>%
+      addPolylines(data = df_str_hab_sk, color = "#e11c92", weight = 2, opacity = 1, group = "Sokeye<br>Habitat", options = leafletOptions(pane = "maplabels")) %>%
+      addPolylines(data = df_str_hab_ch, color = "#e11c92", weight = 2, opacity = 1, group = "Chinook<br>Habitat", options = leafletOptions(pane = "maplabels")) %>%
+      #watershed boundary
       addPolygons(data = boundary, stroke = TRUE, fillOpacity = 0, smoothFactor = 0.5,
     color = "orangered", weight = 3, opacity = 1, group = "Watershed<br>Boundary", fillColor = NA, options = leafletOptions(pane = "polygons")) %>%
+    #home button
       addEasyButton(easyButton(
         icon = "fa-home", title = "Deafult View",
-        onClick = JS("function(btn, map){ map.setView([52.280408375,	-121.005149476], 10); }"))) %>% #set home view
+        onClick = JS("function(btn, map){ map.setView([52.280408375,	-121.005149476], 10); }"))) %>% #set home view to be changed manually when in a different watershed
       addLegend("topright", pal = col, values = df$barrier_status) %>%
       # Layers control
       addLayersControl(
         baseGroups = c("Mapbox", "Mapbox<br>Satellite"),
-        overlayGroups = c("Streams", "Watershed<br>Boundary"),
-        options = layersControlOptions(collapsed = FALSE)
+        overlayGroups = c("Streams", "Coho<br>Habitat", "Sokeye<br>Habitat", "Chinook<br>Habitat", "Watershed<br>Boundary"),
+        options = layersControlOptions(collapsed = FALSE) #collape layer control if collapsed=TRUE
       )
   })
 
 
-  # reference for gomap.js function
+  # reference for gomap.js function (zoom to location function)
   observe({
     if (is.null(input$goto))
       return()
@@ -783,14 +776,15 @@ server <- function(input, output, session) {
   output$mytable <- renderDataTable({
 
     #data table for map
-    dt <- y()[, c("id", "pscis_stream_name", "barrier_status", "crossing_feature_type", "lat", "long")] %>%
+    dt <- y()[, c("id", "pscis_stream_name", "barrier_status", "crossing_feature_type", "lat", "long")] %>% #select columns from data frame to show in table from "Interactive Map" page
               st_drop_geometry() %>%
-              mutate(Location = paste('<a class="go-map" href="" data-lat="', lat, '" data-long="', long, '"><i class="fa fa-crosshairs"></i></a>', sep=""))
+              mutate(Location = paste('<a class="go-map" href="" data-lat="', lat, '" data-long="', long, '"><i class="fa fa-crosshairs"></i></a>', sep="")) # setting lat and long variables for the gomap function
 
-
+    # specific to gomap function DO NOT TOUCH
     action <- DT::dataTableAjax(session, dt, outputId = "mytable")
 
-    datatable(dt, options = list(scrollY = 'calc(100vh - 350px)', ajax = list(url = action), columnDefs = list(list(visible=FALSE, targets=c(5,6)))),
+    #data tavble formatting
+    datatable(dt, options = list(scrollY = 'calc(100vh - 350px)', ajax = list(url = action), columnDefs = list(list(visible=FALSE, targets=c(5,6)))), 
       colnames = c("ID", "Stream Name", "Barrier Status", "Potenital Crossing Type", "Latitude", "Longitude", "Zoom to Location"),
       escape = FALSE,
       selection = "none",
@@ -810,7 +804,8 @@ server <- function(input, output, session) {
             filter(crossing_feature_type == "DAM") %>%
             count(barrier_status) %>%
             mutate(Perc = (n/sum(n)) * 100) %>%
-            mutate(Freq = n/sum(n))
+            mutate(Freq = n/sum(n))%>%
+            mutate(count = n)
             # Compute the cumulative percentages (top of each rectangle)
             df1$ymax <- cumsum(df1$Perc)
             # Compute the bottom of each rectangle
@@ -818,7 +813,7 @@ server <- function(input, output, session) {
             # Compute label position
             df1$labelPosition <- (df1$ymax + df1$ymin) / 2
             # Compute a good label
-            df1$label <- paste0(df1$barrier_status, ": ", scales::percent(df1$Freq))
+            df1$label <- paste0(df1$barrier_status, ": ", scales::percent(df1$Freq)) #change this line in order to display another variable in the dataframe df (i.e, remove scales::percent(df1$Freq) and insert df1$count)
 
       ggplot(df1, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, x="", y=Perc, fill = barrier_status)) +
       geom_rect() +
@@ -844,7 +839,7 @@ server <- function(input, output, session) {
             # Compute label position
             df1$labelPosition <- (df1$ymax + df1$ymin) / 2
             # Compute a good label
-            df1$label <- paste0(df1$barrier_status, ": ", scales::percent(df1$Freq))
+            df1$label <- paste0(df1$barrier_status, ": ", scales::percent(df1$Freq)) #change this line in order to display another variable in the dataframe df (i.e, remove scales::percent(df1$Freq) and insert df1$count)
 
       ggplot(df1, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, x="", y=Perc, fill = barrier_status)) +
       #geom_bar(stat="identity", width=1, color="#f5f5f5") +
@@ -863,20 +858,25 @@ server <- function(input, output, session) {
   #stream crossings table
   output$bar_count <- renderDataTable({
     if (input$options == "dam") {
-      colomn <- c("Passable","Barrier","Potential","Unknwon","Total")
       values_on <- c(barrier_count('ALL','ON')[1], barrier_count('ALL','ON')[5], barrier_count('ALL','ON')[9], barrier_count('ALL','ON')[13], barrier_count('ALL','ON')[17])
       values_hab <- c(barrier_count('ALL','HABITAT')[1], barrier_count('ALL','HABITAT')[5], barrier_count('ALL','HABITAT')[9], barrier_count('ALL','HABITAT')[13], barrier_count('ALL','HABITAT')[17])
       values_acc <- c(barrier_count('ALL','ACCESSIBLE')[1], barrier_count('ALL','ACCESSIBLE')[5], barrier_count('ALL','ACCESSIBLE')[9], barrier_count('ALL','ACCESSIBLE')[13], barrier_count('ALL','ACCESSIBLE')[17])
+    
+    dt <- data.frame(values_on, values_hab, values_acc)
+    dt <- t(dt)
+    datatable(dt, rownames = c("ON","HABITAT","ACCESSIBLE"), colnames = c("Passable","Barrier","Potential","Unknown","Total"), options = list(dom = 't'))
     }
     else if (input$options == "road") {
-      colomn <- c("Passable","Barrier","Potential","Unknwon","Total")
       values_on <- c((barrier_count('ALL','ON')[2]+barrier_count('ALL','ON')[3]), (barrier_count('ALL','ON')[6]+barrier_count('ALL','ON')[7]), (barrier_count('ALL','ON')[10]+barrier_count('ALL','ON')[11]), (barrier_count('ALL','ON')[14]+barrier_count('ALL','ON')[15]), (barrier_count('ALL','ON')[18]+barrier_count('ALL','ON')[19]))
       values_hab <- c((barrier_count('ALL','HABITAT')[2]+barrier_count('ALL','HABITAT')[3]), (barrier_count('ALL','HABITAT')[6]+barrier_count('ALL','HABITAT')[7]), (barrier_count('ALL','HABITAT')[10]+barrier_count('ALL','HABITAT')[11]), (barrier_count('ALL','HABITAT')[14]+barrier_count('ALL','HABITAT')[15]), (barrier_count('ALL','HABITAT')[18]+barrier_count('ALL','HABITAT')[19]))
       values_acc <- c((barrier_count('ALL','ACCESSIBLE')[2]+barrier_count('ALL','ACCESSIBLE')[3]), (barrier_count('ALL','ACCESSIBLE')[6]+barrier_count('ALL','ACCESSIBLE')[7]), (barrier_count('ALL','ACCESSIBLE')[10]+barrier_count('ALL','ACCESSIBLE')[11]),(barrier_count('ALL','ACCESSIBLE')[14]+barrier_count('ALL','ACCESSIBLE')[15]),(barrier_count('ALL','ACCESSIBLE')[18]+barrier_count('ALL','ACCESSIBLE')[19]))
+    
+    dt <- data.frame(values_on, values_hab, values_acc)
+    dt <- t(dt)
+    datatable(dt, rownames = c("ON","HABITAT","ACCESSIBLE"), colnames = c("Passable","Barrier","Potential","Unknown","Total"), options = list(dom = 't'))
     }
 
-    dt <- data.frame(colomn, values_on, values_hab, values_acc)
-    datatable(dt, rownames = FALSE, colnames = c("Passability Status", "TOTAL", "ON HABITAT", "ON ACCESSIBLE STREAMS"), options = list(dom = 't'))
+    
     }
   )
 
@@ -893,7 +893,7 @@ server <- function(input, output, session) {
     scale_fill_manual(values = c("#d52a2a", "#32cd32"))
   })
 
-  #Update connectivity status
+  #Update connectivity status (not currently displayed in dashboard app)
   observeEvent(input$refresh, {
       updateProgressBar(session = session, id = "connect", value = watershed_connectivity("ALL")[1])
     })
@@ -901,13 +901,12 @@ server <- function(input, output, session) {
   #Rendering Acknowledgements Table
   output$tableawk <- renderTable(acknow)
 
-  #rendering data dictionary
+  #rendering data dictionaries
   output$dict <- renderTable(datadict)
   output$pdict <- renderTable(priordict)
   output$rmdict <- renderTable(remdict)
 
-  #updating boxes given dropdown value
-
+  #updating threat level boxes given dropdown value
   output$threat <- renderUI({
     if (input$options == "dam") {
       column(width=5, infoBox("Overall Threat Rating", "MEDIUM", icon = icon("solid fa-circle-exclamation"), color = "yellow", fill = TRUE))
@@ -922,6 +921,7 @@ server <- function(input, output, session) {
     }
   })
 
+  #if not dam or road chosen, hide extra row where pie chart would normally go
   observe({
     if (input$options == "dam" | input$options == "road") {
       shinyjs::show(selector = ".rowhide")
@@ -929,7 +929,7 @@ server <- function(input, output, session) {
       shinyjs::hide(selector = ".rowhide")
     }
   })
-
+ #if not dam or road chosen, hide extra row where title would normally go
   observe({
     if (input$options == "dam" | input$options == "road") {
       shinyjs::showElement(id = "pass_title")
@@ -937,7 +937,7 @@ server <- function(input, output, session) {
       shinyjs::hideElement(id = "pass_title")
     }
   })
-
+  #hide passability status filter dropdown in the "Interactive Map" page
   observe({
     # if (input$priority == "All") {
     #   shinyjs::showElement(id = "variable")
@@ -946,7 +946,7 @@ server <- function(input, output, session) {
     # }
     shinyjs::hideElement(id = "variable")
   })
-
+  #text that goes below threat rating in the "watershed Summary" page
   output$box <- renderUI({
     if (input$options == "dam") {
       p(paste0("There are ", toString(dam_assessed_total), " mapped small dams on “potentially accessible” stream segments in the watershed, blocking a total of ", toString(barrier_extent("DAM")[1]), " km (~", toString(barrier_extent("DAM")[2]), "% of the total blocked habitat) of modelled spawning and rearing habitat for anadromous salmon, resulting in a Medium extent. The extent rating of these structures was confirmed by the planning team.There are two known fish-passage structures in the watershed, including on the dam at the outlet of McKinley Lake. The remaining dams likely block passage for anadromous salmon and would require significant resources to remediate. However, due to the limited extent of dams in the watershed, a final pressure rating of Medium was assigned. Four small dams were identified on the priority barrier list. Three of the dams require further assessment and confirmation of upstream habitat quality, and the dam observed at the outlet of Kwun Lake does not exist."), style="font-size:17px",
@@ -965,55 +965,7 @@ server <- function(input, output, session) {
         )
     }
   })
-  # observeEvent(output$options, {
-  #   if (input$options == "dam") {
-  #     updateBox(session = session,
-  #               id = "expanders1",
-  #               "There are nine mapped small dams on “potentially accessible” stream segments in the watershed, blocking a total of 8.09 km (~23% of the total blocked habitat) of modelled spawning and rearing habitat for anadromous salmon, resulting in a Medium extent. The extent rating of these structures was confirmed by the planning team.There are two known fish-passage structures in the watershed, including on the dam at the outlet of McKinley Lake. The remaining dams likely block passage for anadromous salmon and would require significant resources to remediate. However, due to the limited extent of dams in the watershed, a final pressure rating of Medium was assigned. Four small dams were identified on the priority barrier list. Three of the dams require further assessment and confirmation of upstream habitat quality, and the dam observed at the outlet of Kwun Lake does not exist.",
-  #               title = "Small Dams (<3 m height)"
-  #               )
-  #   } else if (input$options == "road") {
-  #     updateBox(session = session,
-  #               id = "expanders1",
-  #               "Road-stream crossings are the most abundant barrier type in the watershed, with 103 assessed and modelled crossings located on stream segments with modelled habitat. Demographic road crossings (highways, municipal, and paved roads) block 7.31 km of habitat (~21% of the total blocked habitat), with 73% of assessed crossings having been identified as barriers to fish passage. Resource roads block 19.57 km of habitat (~56%), with 60% of assessed crossings having been identified as barriers. The planning team felt that the data was underestimating the severity of road-stream crossing barriers in the watershed, and therefore decided to update the rating from High to Very High. The planning team also felt that an irreversibility rating of Medium was appropriate due to the technical complexity and resources required to remediate road-stream crossings.",               
-  #               title = "Road-stream Crossings"
-  #               )
-  #   }
-  # })
 
-
-                                                          # box(
-                                                          #   title = "Road-stream Crossings",
-                                                          #   "Road-stream crossings are the most abundant barrier type in the watershed, with 103 assessed and modelled crossings located on stream segments with modelled habitat. Demographic road crossings (highways, municipal, and paved roads) block 7.31 km of habitat (~21% of the total blocked habitat), with 73% of assessed crossings having been identified as barriers to fish passage. Resource roads block 19.57 km of habitat (~56%), with 60% of assessed crossings having been identified as barriers. The planning team felt that the data was underestimating the severity of road-stream crossing barriers in the watershed, and therefore decided to update the rating from High to Very High. The planning team also felt that an irreversibility rating of Medium was appropriate due to the technical complexity and resources required to remediate road-stream crossings.",
-                                                          #   id = "expanders",
-                                                          #   collapsible = TRUE,
-                                                          #   closable = FALSE,
-                                                          #   collapsed = TRUE
-                                                          # ),
-                                                          # box(
-                                                          #   title = "Trail-stream crossings",
-                                                          #   "There is very little spatial data available on trail-stream crossings in the watershed, so the planning team was unable to quantify the true Extent and Severity of this barrier type. However, the planning team felt that trail-stream crossings are not prevalent within the watershed and that, where they do exist, they do not significantly impact passage for anadromous salmon. As most crossings will be fords or similar structures, remediation may not be required, or remediation costs associated with these barriers would be quite low. Overall, the planning team felt that the pressure rating for trail-stream crossings was likely Low; however, the lack of ground-truthed evidence to support this rating was identified as a knowledge gap within this plan.",
-                                                          #   id = "expanders",
-                                                          #   collapsible = TRUE,
-                                                          #   closable = FALSE,
-                                                          #   collapsed = TRUE
-                                                          # ),
-                                                          # box(
-                                                          #   title = "Lateral Barriers",
-                                                          #   "There are numerous types of lateral barriers that potentially occur in the watershed, including dykes, berms, and linear development (i.e., road and rail lines), all of which can restrict the ability of anadromous salmon to move into floodplains, riparian wetlands, and other off-channel habitats. No comprehensive lateral barrier data exists within the watershed, so pressure ratings were based on qualitative local knowledge. Lateral barriers are not thought to be as prevalent as road- or rail-stream crossings but are likely very severe where they do exist. Significant lateral barriers are known to occur along the mainstem of the Horsefly River, which disconnect the mainstem river from historic floodplain and off-channel habitat. Overall, the planning team decided that a High pressure rating adequately captured the effect that lateral barriers are having on connectivity in the watershed. Work to begin quantifying and mapping lateral habitat will begin in 2022-23, as described in the Operational Plan under Strategy 2: Lateral barrier remediation. ",
-                                                          #   id = "expanders",
-                                                          #   collapsible = TRUE,
-                                                          #   closable = FALSE,
-                                                          #   collapsed = TRUE
-                                                          # ),
-                                                          # box(
-                                                          #   title = "Natural Barriers",
-                                                          #   "Natural barriers to fish passage can include debris flows, log jams, sediment deposits, etc., but natural features that have always restricted fish passage (e.g., waterfalls) are not considered under this barrier type. Natural barriers are difficult to include in a spatial prioritization framework due to their transient nature. The planning team identified known natural barriers that occur throughout the watershed, such as beaver dams and log jams. Generally, these natural barriers are only severe impediments to fish passage during low-flow years, but reduced baseflows have become more common in recent years. Based on this, the planning team felt that natural barriers will be severe most years where they exist, but are mostly reversible, resulting in an overall pressure rating of Low.",
-                                                          #   id = "expanders",
-                                                          #   collapsible = TRUE,
-                                                          #   closable = FALSE,
-                                                          #   collapsed = TRUE
-                                                          # )
 }
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 # finally, we need to call the shinyapp function with the ui and server as arguments
@@ -1023,11 +975,11 @@ server <- function(input, output, session) {
 ### LOCAL MACHINE: app <- shinyApp(ui, server)                           ###
 ############################################################################
 
-shinyApp(ui, server)
+app <- shinyApp(ui, server)
 
 
 #run app locally if using a code editor other than RStudio
 ###########################################################
 ### MAKE SURE LINE BELOW IS COMMENTED OUT WHEN DEPLOYED ###
 ###########################################################
-#runApp(app)
+runApp(app)
