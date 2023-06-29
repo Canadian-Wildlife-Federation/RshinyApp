@@ -1,8 +1,18 @@
+##################################################################################
+#RShinyApp
+##################################################################################
+#Author: CWF
+###################################################################################
+#This app.R file is an R shiny app written in R for use of fish passage stats within watersheds in BC
+#The app populates crossing data from API calls to the bcfishpass database. It follows a very specific structure that uses cql filtering with specific bcfishpass attributes.
+#
+###################################################################################
+
 #add necessary libraries
 ##################################################################################
 library(maps)
 library(leaflet)
-library(dplyr)
+library(dplyr) #main library for spatial data manipulation
 library(shiny)
 library(httr)
 library(jsonlite)
