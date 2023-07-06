@@ -985,11 +985,11 @@ server <- function(input, output, session) {
 ### LOCAL MACHINE: app <- shinyApp(ui, server)                           ###
 ############################################################################
 
-app <- shinyApp(ui, server)
+shinyApp(ui, server)
 
 
 #run app locally if using a code editor other than RStudio
 ###########################################################
 ### MAKE SURE LINE BELOW IS COMMENTED OUT WHEN DEPLOYED ###
 ###########################################################
-runApp(app)
+#runApp(app)
